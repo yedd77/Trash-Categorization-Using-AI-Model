@@ -1,9 +1,39 @@
-import React from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Navbar from '../Components/Navbar/Navbar';
-import GoogleLogin from "../Components/GoogleLogin";
+import React from "react"
+import "bootstrap/dist/css/bootstrap.min.css"
+import Navbar from '../Components/Navbar/Navbar'
+import GoogleLogin from "../Components/GoogleLogin"
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from "firebase/auth"
 
 const SignIn = () => {
+
+  // State variable to manage redirection after login
+  const navigate = useNavigate();
+
+  // State variables for email, password
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
+
+  // Function to handle login
+  const handleLogin = async () => {
+    // Check if email and password are not empty
+    if (email === "" || password === "") {
+      alert("Please fill in all fields!")
+      return
+    }
+    // Attempt to sign in with email and password
+    try {
+
+      await signInWithEmailAndPassword(auth, email, password)
+      console.log("User signed in successfully") //Debugging line
+      // Redirect to the categorizer page after successful login
+      navigate("/categorizer") 
+    } catch (err) {
+      console.error("Error signing in:", err)
+    }
+  }
+  
   return (
     <>
       <Navbar />
@@ -29,27 +59,30 @@ const SignIn = () => {
             <h4 className="fw-bold mb-2">Welcome Back!</h4>
             <p className="text-muted mb-4">
               Don't have account?{" "}
-              <strong>Create a new account now</strong>
+              <Link to="/register" className="text-decoration-none text-muted">
+                <strong>Create a new account now</strong>
+              </Link>
             </p>
-            <form className="w-75">
               <input
                 type="email"
                 placeholder="test@gmail.com"
                 className="form-control mb-3"
+                onChange={(e) => setEmail(e.target.value)}
               />
               <input
                 type="password"
                 placeholder="Password"
                 className="form-control mb-4"
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="submit"
                 className="btn w-100 mb-4"
                 style={{ backgroundColor: "#80BC44", color: "#fff" }}
+                onClick={handleLogin}
               >
                 Sign In
               </button>
-            </form>
             <div className="mb-4 w-75 text-center">
               <GoogleLogin />
             </div>
