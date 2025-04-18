@@ -1,12 +1,13 @@
 import React from 'react'
 import './Navbar.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import { Link } from 'react-router-dom'
 
 const Navbar = () => {
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4">
+    <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
       <a className="navbar-brand" href="#">
-        {/* Replace with an actual logo image if you have one */}
+        {/* Replace with an actual logo image */}
         <img src="https://via.placeholder.com/120x40?text=Logo" alt="Logo" height="40" />
       </a>
 
@@ -17,7 +18,9 @@ const Navbar = () => {
       <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul className="navbar-nav me-3 d-flex gap-4">
           <li className="nav-item">
-            <a className="nav-link" href="#">Home</a>
+            <a className="nav-link" href="#">
+              <Link to="/" className="text-decoration-none text-dark">Home</Link>
+            </a>
           </li>
           <li className="nav-item">
             <a className="nav-link" href="#">How it works</a>
@@ -29,7 +32,9 @@ const Navbar = () => {
             <a className="nav-link" href="#">Try us</a>
           </li>
         </ul>
-        <a className="btn btn-signin" href="#">Sign In</a>
+        <a className="btn btn-signin">
+          <Link to="/signin" className="text-decoration-none text-white">Sign In</Link>
+        </a>
       </div>
     </nav>
   )

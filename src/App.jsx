@@ -1,11 +1,17 @@
 import React from 'react'
-import Navbar from './Components/Navbar/Navbar'
+import {HashRouter as Router, Route, Routes} from 'react-router-dom'
+import Homepage from './Pages/Homepage'
+import SignIn from './Pages/SignIn'
 
-const App = () => {
+
+function App() {
   return (
-    <div>
-      <Navbar />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Homepage />} />
+        <Route path="/signin" element={<SignIn />} />
+      </Routes>
+    </Router>
   )
 }
 
