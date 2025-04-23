@@ -6,6 +6,7 @@ import GoogleLogin from '../Components/GoogleLogin';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'
 
 const Register = () => {
 
@@ -13,6 +14,7 @@ const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const navigate = useNavigate(); 
 
     // Function to handle signup
     const handleSignup = async () => {
@@ -35,9 +37,10 @@ const Register = () => {
         // Attempt to create a new user with email and password
         try {
             await createUserWithEmailAndPassword(auth, email, password);
+            navigate("/categorizer")  // Redirect to the categorizer page after successful signup
         }
         catch (err) {
-            console.error("Error signing up:", err);
+            console.error("Error signing up:", err); // Log the error for debugging
         }
     }
     return (
@@ -59,6 +62,7 @@ const Register = () => {
                         </h4>
                         <p className="text-muted mb-4">
                             Already have an account?{" "}
+                            {/* Link to the Sign In page */}
                             <Link to="/signin" className="text-decoration-none text-muted">
                                 <strong>Sign in now</strong>
                             </Link>
@@ -67,30 +71,30 @@ const Register = () => {
                             type="email"
                             placeholder="test@gmail.com"
                             className="form-control mb-3"
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => setEmail(e.target.value)} /* Update email state */
                         />
                         <input
                             type="password"
                             placeholder="Password"
                             className="form-control mb-4"
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(e) => setPassword(e.target.value)} /* Update password state */
                         />
                         <input
                             type="password"
                             placeholder="Repeat Your Password"
                             className="form-control mb-4"
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={(e) => setConfirmPassword(e.target.value)} /* Update confirm password state */
                         />
                         <button
                             type="submit"
                             className="btn w-100 mb-4"
-                            style={{ backgroundColor: "#80BC44", color: "#fff" }}
-                            onClick={handleSignup}
+                            style={{ backgroundColor: "#80BC44", color: "#fff" }} 
+                            onClick={handleSignup} /* Call handleSignup function */
                         >
                             Sign Up
                         </button>
                         <div className="mb-4 w-75 text-center">
-                            <GoogleLogin />
+                            <GoogleLogin /> {/* Google login button */}
                         </div>
                     </div>
                     <div className="col-md-7 p-0">

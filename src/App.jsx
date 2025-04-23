@@ -4,6 +4,7 @@ import Homepage from './Pages/Homepage'
 import SignIn from './Pages/SignIn'
 import Register from './Pages/register'
 import Categorizer from './Pages/Categorizer'
+import Profile from './Pages/Profile'
 
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/register" element={<Register />} />
         <Route path="/categorizer" element={<Categorizer />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   )
