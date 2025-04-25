@@ -1,12 +1,62 @@
-# React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Trash Categorization Using AI Model
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Expanding the ESLint configuration
+Node.js v20.14.0 or higher is required  
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+  Check your version:
+
+  ```
+  node -v
+  ``` 
+
+  If it's lower, install a newer version from https://nodejs.org or use a version manager like nvm.
+
+
+## Setup Instructions
+
+Clone the repository
+
+
+```
+git clone https://github.com/yedd77/Trash-Categorization-Using-AI-Model.git
+cd Trash-Categorization-Using-AI-Model.git
+```
+
+Install dependencies
+```
+npm install
+```
+
+Update dependencies (optional but recommended)
+```
+npm update
+```
+
+Add .env file and make sure you download or create a .env file and place it in the root folder of the project.
+
+Example of root folder structure
+```
+your-repo-name/
+├── node_modules/
+├── public/
+├── src/
+├── .env             <-- Place your .env file here
+├── .gitignore
+├── package.json
+└── README.md
+
+```
+
+Run the app
+```
+npm run dev
+```
+
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
+
