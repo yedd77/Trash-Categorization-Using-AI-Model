@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Navbar.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Link } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -73,7 +74,7 @@ const Navbar = () => {
           ) : (
             // This will be false if the app is running in a browser
             <li className="nav-item">
-              <a className="nav-link" href="#">Our App</a>
+              <Link to="/ourApp" className="nav-link text-decoration-none text-dark">Our App</Link>
             </li>
           )}
           <li className="nav-item">

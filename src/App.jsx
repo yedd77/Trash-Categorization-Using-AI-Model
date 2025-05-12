@@ -5,7 +5,10 @@ import SignIn from './Pages/SignIn'
 import Register from './Pages/register'
 import Categorizer from './Pages/Categorizer'
 import Profile from './Pages/Profile'
+import OurApp from './Pages/ourApp'
 
+// main.jsx or App.jsx
+import { registerSW } from 'virtual:pwa-register';
 
 function App() {
   return (
@@ -16,6 +19,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/categorizer" element={<Categorizer />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/ourApp" element={<OurApp />} />
+
       </Routes>
     </Router>
   )

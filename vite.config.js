@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'robots.txt', 'icons/icon-192x192.png', 'icons/icon-512x512.png'],
       manifest: {
-        name: 'Firebase Auth App',
-        short_name: 'AuthApp',
+        name: 'BinBuddy',
+        short_name: 'BinBuddy',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
