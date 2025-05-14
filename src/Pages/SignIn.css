@@ -1,0 +1,17 @@
+
+.f-8{
+  font-size: 12px;
+}
+
+.f-9{
+  font-size: 14px;
+}
+
+.empty{
+  margin: 0px;
+  padding: 0px;
+}
+
+.full{
+  height: 100%;
+}

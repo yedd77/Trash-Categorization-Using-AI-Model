@@ -1,0 +1,23 @@
+.f-8{
+  font-size: 12px;
+}
+
+.f-9{
+  font-size: 14px;
+}
+
+.empty{
+  margin: 0px;
+  padding: 0px;
+}
+
+.container-fluid.h-100 {
+  height: 100vh;
+  overflow: hidden; /* Prevent overflow */
+}
+
+img.w-100.flex-fill.object-fit-cover {
+  height: 100%;
+  width: 100%;
+  object-fit: cover; 
+}

@@ -12,6 +12,7 @@
   "dependencies": {
     "bootstrap": "^5.3.5",
     "firebase": "^11.6.0",
+    "firebase-admin": "^13.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",

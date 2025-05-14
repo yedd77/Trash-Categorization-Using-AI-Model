@@ -1,0 +1,22 @@
+.empty{
+  margin: 0px;
+  padding: 0px;
+}
+
+.f-9{
+  font-size: 14px;
+}
+
+/* Small devices (portrait tablets and large phones, 600px and up) */
+@media only screen and (max-width: 600px) {
+  .resizeCard {
+    width: 80%;
+  }
+}
+
+/* Large devices (laptops/desktops, 992px and up) */
+@media only screen and (min-width: 992px) {
+  .resizeCard {
+    width: 35%;
+  }
+}
