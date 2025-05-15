@@ -88,7 +88,7 @@ const Register = () => {
                 <p className="fw-bold fs-4">Welcome Back!</p>
                 <p className="fw-light text-secondary">
                   Already have an account?{" "}
-                  <Link to="/register" className="text-decoration-none fw-semibold text-muted">
+                  <Link to="/signin" className="text-decoration-none fw-semibold text-muted">
                     Sign in now!
                   </Link>
                 </p>

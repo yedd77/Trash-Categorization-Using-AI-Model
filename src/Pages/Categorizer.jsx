@@ -1,77 +1,155 @@
-import React from 'react'
-import Navbar from '../Components/Navbar/Navbar'
-import "./ForgotPass.css"
+import React, { useEffect, useState } from 'react';
+import Navbar from '../Components/Navbar/Navbar';
+import { useDropzone } from 'react-dropzone';
 
 const Categorizer = () => {
+  const [files, setFiles] = useState([]);
+  const [hasImage, setHasImage] = useState(false);
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    accept: 'image/*',
+    noClick: true, // Disable default click behavior
+    onDrop: (acceptedFiles) => {
+      const updatedFiles = acceptedFiles.map((file) =>
+        Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        })
+      );
+      setFiles(updatedFiles);
+      setHasImage(updatedFiles.length > 0);
+    },
+  });
+
+  const images = files.map((file) => (
+    <img
+      key={file.name}
+      src={file.preview}
+      style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+      alt="preview"
+      onLoad={() => {
+        URL.revokeObjectURL(file.preview);
+      }}
+    />
+  ));
+
+  useEffect(() => {
+    const handlePaste = (event) => {
+      const items = event.clipboardData?.items;
+
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            const preview = URL.createObjectURL(file);
+            const newFile = Object.assign(file, { preview });
+
+            setFiles((prevFiles) => [...prevFiles, newFile]);
+            setHasImage(true);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, []);
+
   return (
-    <div>
+    <div {...getRootProps()} style={{ position: 'relative' }}>
       <Navbar />
+      <input {...getInputProps()} />
       <div className="container-fluid">
+        {/* Full-Screen Overlay */}
+        {isDragActive && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 9999,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              color: 'white',
+              fontSize: '24px',
+              fontWeight: 'bold',
+            }}
+          >
+            Drop image everywhere
+          </div>
+        )}
+
         <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
           {/* Page 1 */}
           <div className="d-flex flex-column flex-grow-1 pt-5" id="page-1">
             <p className="fw-bold empty fs-2 text-center">What Kind of Trash Is This</p>
-            <p className="fw-semibold empty text-muted text-center lh-sm">Not sure what kind of trash you have? Upload picture</p>
-            <p className="fw-semibold empty text-muted text-center lh-sm mb-5">and let us figure it out for you.</p>
-
-            <div className="d-flex justify-content-center mb-5">
-              <div className="card border-0 rounded-4 shadow resizeCard" style={{ height: '30vh' }}>
-                <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                  <button
-                    className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold"
-                    id="btn-1"
-                    type="button"
-                    style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                    onClick={() => showPage('page-2')}
-                  >
-                    <i className="bi bi-upload me-3"></i>Upload Image
-                  </button>
-                  <p className="fw-semibold empty f-9 text-muted lh-sm">or drop a file here</p>
-                  <p className="fw-semibold empty f-9 text-muted lh-sm">CTRL + V to paste an image</p>
+            <p className="fw-semibold empty text-muted text-center lh-sm">
+              Not sure what kind of trash you have? Upload picture
+            </p>
+            <p className="fw-semibold empty text-muted text-center lh-sm mb-5">
+              and let us figure it out for you.
+            </p>
+            {/* Conditionally render elements */}
+            {!hasImage ? (
+               <>
+              <div className="d-flex justify-content-center mb-5">
+                <div
+                  className="card border-0 rounded-4 shadow resizeCard"
+                  style={{ height: '30vh' }}
+                >
+                  <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                    <button
+                      className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold"
+                      id="btn-1"
+                      type="button"
+                      style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                      onClick={open} // Manually trigger file input
+                    >
+                      <i className="bi bi-upload me-3"></i>Upload Image
+                    </button>
+                    <p className="fw-semibold empty f-9 text-muted lh-sm">or drop a file here</p>
+                    <p className="fw-semibold empty f-9 text-muted lh-sm">CTRL + V to paste an image</p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="d-flex justify-content-center mb-4">
-              <div className="text-center me-3">
-                <p className="fw-semibold empty f-8 text-muted">No image?</p>
-                <p className="fw-semibold empty f-8 text-muted">Try one of these images</p>
+              <div>{images}</div>
+              <div className="d-flex justify-content-center mb-4">
+                <div className="text-center me-3">
+                  <p className="fw-semibold empty f-8 text-muted">No image?</p>
+                  <p className="fw-semibold empty f-8 text-muted">Try one of these images</p>
+                </div>
+                <img
+                  src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                  className="rounded-3 me-3"
+                  style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                />
+                <img
+                  src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                  className="rounded-3 me-3"
+                  style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                />
+                <img
+                  src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                  className="rounded-3 me-3"
+                  style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                />
               </div>
-              <img
-                src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                className="rounded-3 me-3"
-                style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-              />
-              <img
-                src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                className="rounded-3 me-3"
-                style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-              />
-              <img
-                src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                className="rounded-3 me-3"
-                style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-              />
-            </div>
-
-            <div className="mt-auto text-center px-4 pb-3">
-              <p className="fw-semibold empty text-muted">
-                Install our app to get rewarded each time you scan and throw it correctly.
-              </p>
-            </div>
-          </div>
-
-          {/* Page 2 */}
-          <div className="d-flex flex-column flex-grow-1 pt-5 d-none" id="page-2">
-            <p className="fw-bold empty fs-2 text-center">What Kind of Trash Is This</p>
-            <p className="fw-semibold empty text-muted text-center lh-sm">Not sure what kind of trash you have? Upload picture</p>
-            <p className="fw-semibold empty text-muted text-center lh-sm mb-5">and let us figure it out for you.</p>
-
-            <div className="d-flex justify-content-center mb-5">
+            </>
+            ):(
+              <>
+              <div className="d-flex justify-content-center mb-5">
               <div className="card border-0" style={{ height: '30vh' }}>
                 <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
                   <img
-                    src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                    src={files[0].preview}
                     alt="Plastic Bag"
                     className="rounded-3 mb-3"
                     style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }}
@@ -91,35 +169,11 @@ const Categorizer = () => {
                 <i className="bi bi-lightbulb-fill me-2"></i>Classify Trash
               </button>
             </div>
+              </>
+            )}
+           
 
-            <div className="mt-auto text-center px-4 pb-3">
-              <p className="fw-semibold empty text-muted">
-                Install our app to get rewarded each time you scan and throw it correctly.
-              </p>
-            </div>
-          </div>
 
-          {/* Page 3 */}
-          <div className="d-flex flex-column flex-grow-1 pt-5 d-none" id="page-3">
-            <div className="main-section container">
-              <div className="result-card">
-                <img src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg" alt="Plastic Bag" />
-                <div className="text-block">
-                  <p className="fw-bold empty fs-2 mb-2">Plastic Bag (Plastic)</p>
-                  <p className="text-muted lh-sm mb-2">Please rinse and throw it in our blue recycle bin</p>
-                  <p className="text-muted lh-sm">
-                    Almost there!
-                    <br />
-                    Install our app and dispose of your waste properly to start earning rewards.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-5 pt-3">
-                <button className="btn btn-custom" id="btn-3" onClick={() => showPage('page-1')}>
-                  <i className="bi bi-check2-square"></i> Classify More
-                </button>
-              </div>
-            </div>
             <div className="mt-auto text-center px-4 pb-3">
               <p className="fw-semibold empty text-muted">
                 Install our app to get rewarded each time you scan and throw it correctly.
@@ -129,7 +183,7 @@ const Categorizer = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Categorizer
+export default Categorizer;
