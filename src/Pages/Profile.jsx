@@ -1,34 +1,26 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import "bootstrap/dist/css/bootstrap.min.css"
 import Navbar from '../Components/Navbar/Navbar'
 import { auth } from '../firebase'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { updateProfile } from 'firebase/auth'
-import { useState } from 'react'
-
-
 
 const Profile = () => {
-
     const [username, setUsername] = useState('')
-
     const navigate = useNavigate()
-    const handlelogout = () => {
+    const [user, setUser] = useState(null)
+    const [isAdmin, setIsAdmin] = useState(false)
 
+    const handlelogout = () => {
         auth.signOut().then(() => {
             console.log("User signed out successfully.");
-
-            // Redirect to the sign-in page after successful logout
             navigate("/")
-
         }).catch((error) => {
             console.error("Error signing out: ", error);
         });
     }
 
-    // Function to handle username change (to be implemented)
     const handleUsernameChange = (newUsername) => {
-
         updateProfile(auth.currentUser, {
             displayName: newUsername
         }).then(() => {
@@ -38,6 +30,29 @@ const Profile = () => {
             console.error("Error updating username: ", error);
         });
     }
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                setUser(user);
+                // Check for admin claim
+                try {
+                    const tokenResult = await user.getIdTokenResult();
+                    setIsAdmin(!!tokenResult.claims.admin);
+                } catch (error) {
+                    setIsAdmin(false);
+                    console.error("Error checking admin status:", error);
+                }
+                console.log("User is authenticated:", user);
+            } else {
+                setUser(null);
+                setIsAdmin(false);
+                console.log("User is not authenticated.");
+                navigate("/");
+            }
+        });
+        return () => unsubscribe();
+    }, [navigate]);
 
     return (
         <>
@@ -62,6 +77,10 @@ const Profile = () => {
                     Save
                 </button>
             </div>
+            {isAdmin && (
+                <Link to="/admin/dashboard">Admin Dashboard</Link>
+            )}
+            <p>Version 1.1 Dev</p>
         </>
     )
 }
