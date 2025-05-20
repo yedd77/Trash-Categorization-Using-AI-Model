@@ -11,11 +11,11 @@ import AdminRoute from './AdminRoute'
 import ForgotPassword from './Pages/ForgotPass'
 import ResetPass  from './Pages/ResetPass'
 
-// main.jsx or App.jsx
 import { registerSW } from 'virtual:pwa-register';
 import { onAuthStateChanged } from 'firebase/auth'
 import { getDoc } from 'firebase/firestore'
 
+import Station from './Pages/Admin/Station'
 
 
 function App() {
@@ -36,6 +36,13 @@ function App() {
         element={
           <AdminRoute>
             <Dashboard />
+          </AdminRoute>
+        } 
+        />
+        <Route path="/admin/dashboard/station" 
+        element={
+          <AdminRoute>
+            <Station />
           </AdminRoute>
         } 
         />
