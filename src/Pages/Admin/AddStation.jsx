@@ -102,7 +102,7 @@ const AddStation = () => {
             stationCoordinate: stationCoordinate,
             stationInstruction: stationInstruction,
             createdAt: new Date(),
-            stationStatus: false,
+            stationStatus: "inactive",
         });
     }
 
@@ -160,11 +160,12 @@ const AddStation = () => {
                     <div className="app-content-header">
                         <div className="container-fluid">
                             <div className="row">
-                                <div className="col-sm-6"><h3 className="mb-0">Station Dashboard</h3></div>
+                                <div className="col-sm-6"><h3 className="mb-0">Add Station</h3></div>
                                 <div className="col-sm-6">
                                     <ol className="breadcrumb float-sm-end">
-                                        <li className="breadcrumb-item"><a href="#">Home</a></li>
+                                        <li className="breadcrumb-item">Home</li>
                                         <li className="breadcrumb-item active">Station Dashboard</li>
+                                        <li className="breadcrumb-item active">Add Station</li>
                                     </ol>
                                 </div>
                             </div>

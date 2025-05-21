@@ -34,12 +34,6 @@ const Sidebar = () => (
               </p>
             </a>
             <ul className="nav nav-treeview">
-              <li className="nav-item">
-                <a href="./index.html" className="nav-link ">
-                  <i className="nav-icon bi bi-circle"></i>
-                  <p>Bin</p>
-                </a>
-              </li>
               <Link to="/admin/dashboard/station" className="nav-link">
                 <i className="nav-icon bi bi-circle"></i>
                 <p>Station</p>

@@ -14479,7 +14479,7 @@ html.maximized-card {
 .text-bg-info {
   --lte-card-variant-bg: #0dcaf0;
   --lte-card-variant-bg-rgb: 13, 202, 240;
-  --lte-card-variant-color: #000;
+  --lte-card-variant-color: #fff;
   --lte-card-variant-color-rgb: 0, 0, 0;
 }
 
