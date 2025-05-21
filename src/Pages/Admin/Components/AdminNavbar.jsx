@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../../../firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
-const AdminNavbar = () => {
+const AdminNavbar = ({ toggleSidebar }) => {
+
     const [user, setUser] = useState(null); // State to manage the user authentication
 
     useEffect(() => {
-
         const auth = getAuth();
         const user = auth.currentUser;
         if (user) {
@@ -14,8 +14,14 @@ const AdminNavbar = () => {
         } else {
             setUser(null);
         }
-
     }, []);
+
+    const handleSidebarToggle = (e) => {
+        e.preventDefault();
+        if (typeof toggleSidebar === 'function') {
+            toggleSidebar();
+        }
+    };
 
     return (
         <>
@@ -23,12 +29,19 @@ const AdminNavbar = () => {
                 <div className="container-fluid">
                     <ul className="navbar-nav">
                         <li className="nav-item">
-                            <a className="nav-link" data-lte-toggle="sidebar" href="#" role="button">
+                            <a
+                                className="nav-link"
+                                data-lte-toggle="sidebar"
+                                href="#"
+                                role="button"
+                                onClick={handleSidebarToggle}
+                            >
                                 <i className="bi bi-list"></i>
                             </a>
                         </li>
-                        <li className="nav-item d-none d-md-block"><a href="#" className="nav-link">Home</a></li>
-                        <li className="nav-item d-none d-md-block"><a href="#" className="nav-link">Contact</a></li>
+                        <li className="nav-item d-none d-md-block">
+                            <a href="#" className="nav-link">Home</a>
+                        </li>
                     </ul>
                     <ul className="navbar-nav ms-auto">
                         <li className="nav-item dropdown user-menu">
@@ -48,4 +61,4 @@ const AdminNavbar = () => {
     )
 }
 
-export default AdminNavbar
+export default AdminNavbar;

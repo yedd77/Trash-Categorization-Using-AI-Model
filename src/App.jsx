@@ -16,6 +16,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { getDoc } from 'firebase/firestore'
 
 import Station from './Pages/Admin/Station'
+import AddStation from './Pages/Admin/AddStation'
 
 
 function App() {
@@ -46,6 +47,14 @@ function App() {
           </AdminRoute>
         } 
         />
+        <Route path="/admin/dashboard/addStation" 
+        element={
+          <AdminRoute>
+            <AddStation />
+          </AdminRoute>
+        } 
+        />
+        
 
       </Routes>
     </Router>
