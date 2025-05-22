@@ -4,7 +4,8 @@ import Sidebar from './Components/sidebar'
 import { collection, getDocs, doc, setDoc, getCountFromServer, query, where } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { Link } from 'react-router-dom'
-
+import "../Admin/css/adminlte.css"
+import "../Admin/js/adminlte.js"
 
 const Station = () => {
 
@@ -15,6 +16,7 @@ const Station = () => {
   const [activeStationCount, setActiveStationCount] = useState(0);
   const [brokenStationCount, setBrokenStationCount] = useState(0);
   const [stations, setStations] = useState([]);
+  const [selectedStation, setSelectedStation] = useState(null);
 
   // function to fetch station from Firestore
   useEffect(() => {
@@ -92,7 +94,6 @@ const Station = () => {
 
   return (
     <>
-
       <div className="app-wrapper">
         <AdminNavbar toggleSidebar={() => setIsCollapsed(prev => !prev)} />
         <Sidebar />
@@ -159,7 +160,6 @@ const Station = () => {
                             </div>
                           </div>
                         </div>
-
                         <div className="card-body table-responsive p-0">
                           <table className="table table-hover text-nowrap">
                             <thead>
@@ -172,8 +172,8 @@ const Station = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {stations.map((station, index) => (
-                                <tr key={index}>
+                              {stations.map((station) => (
+                                <tr key={station.binID}>
                                   <td>{station.binID}</td>
                                   <td>{station.stationName}</td>
                                   <td>{new Date(station.createdAt.seconds * 1000).toLocaleString()}</td>
@@ -182,8 +182,13 @@ const Station = () => {
                                       {station.stationStatus}
                                     </span>
                                   </td>
+                                  <td>
+                                    <button className='btn btn-sm btn-outline-primary'
+                                      onClick={() => setSelectedStation(station)}>
+                                      View
+                                    </button>
+                                  </td>
                                 </tr>
-
                               ))}
                             </tbody>
                           </table>
@@ -191,9 +196,8 @@ const Station = () => {
                       </div>
                     </div>
                   </div>
-
                   <div className="row">
-                    <div className="col-md-6">
+                    <div className="col-md-12">
                       <div className="card card-outline card-info">
                         <div className="card-header">
                           <h3 className="card-title">Add New Station</h3>
@@ -207,40 +211,60 @@ const Station = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="col-md-6">
-                      <div className="card card-outline card-info">
-                        <div className="card-header">
-                          <h3 className="card-title">Add New Station</h3>
-                        </div>
-                        <div className="card-body">
-                          <div className="form-group">
-                            <label>Bin ID</label>
-                            <input className="form-control" disabled />
+                  </div>
+                  {selectedStation && (
+                    <div className="row">
+                      <div className="col-md-12">
+                        <div className="card card-outline card-info">
+                          <div className="card-header">
+                            <h3 className="card-title">Station Details</h3>
                           </div>
-                          <div className='form-group'>
-                            <label>Tag UID</label>
-                            <input className="form-control" disabled />
-                          </div>
-                          <div className="form-group">
-                            <label>Station URL</label>
-                            <input className="form-control" disabled />
-                          </div>
-                          <div className="form-group">
-                            <label>Station Name</label>
-                            <input className="form-control" placeholder="Station Name Here" />
-                          </div>
-                          <div className="form-group">
-                            <label>Station Coordinate</label>
-                            <input className="form-control" id="exampleInputPassword1" placeholder="Station Coordinate"/>
-                          </div>
-                          <div className="form-group">
-                            <label>Station Specific Instruction</label>
-                            <textarea className='form-control'></textarea>
+                          <div className="card-body">
+                            <div className="form-group">
+                              <label>Bin ID</label>
+                              <input className="form-control" disabled value={selectedStation.binID} />
+                            </div>
+                            <div className='form-group'>
+                              <label>Tag UID</label>
+                              <input className="form-control" disabled value={selectedStation.tagUID} />
+                              {/* TODO - Add copy button*/}
+                            </div>
+                            <div className="form-group">
+                              <label>Station URL</label>
+                              <input className="form-control" disabled value={selectedStation.stationURL} />
+                            </div>
+                            <div className="form-group">
+                              <label>Created At</label>
+                              <input className="form-control" disabled value={new Date(selectedStation.createdAt.seconds * 1000).toLocaleString()} />
+                            </div>
+                            <div className="form-group">
+                              <label>Station Name</label>
+                              <input className="form-control" value={selectedStation.stationName} />
+                            </div>
+                            <div className="form-group">
+                              <label>Station Coordinate</label>
+                              <input className="form-control" id="exampleInputPassword1" value={selectedStation.stationCoordinate} />
+                            </div>
+                            <div className="form-group">
+                              <label>Station Specific Instruction</label>
+                              <textarea className='form-control' value={selectedStation.stationInstruction}></textarea>
+                            </div>
+                            <div className="btn-group btn-group-toggle" data-toggle="buttons">
+                              <label className="btn bg-olive">
+                                <input type="radio" name="options" id="option_b1" autocomplete="off" checked=""/> Active
+                              </label>
+                              <label className="btn bg-olive">
+                                <input type="radio" name="options" id="option_b2" autocomplete="off"/> Radio
+                              </label>
+                              <label className="btn bg-olive active">
+                                <input type="radio" name="options" id="option_b3" autocomplete="off"/> Radio
+                              </label>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </section>
             </div>
