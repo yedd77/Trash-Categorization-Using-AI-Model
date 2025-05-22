@@ -218,7 +218,7 @@ const Station = () => {
                                     </span>
                                   </td>
                                   <td>
-                                    <button className='btn btn-sm btn-outline-primary'
+                                    <button className='btn btn-primary mb-2 btn-sm'
                                       onClick={() => setSelectedStation(station)}>
                                       View
                                     </button>
@@ -296,24 +296,26 @@ const Station = () => {
                                 onChange={e => setStationInstruction(e.target.value)}
                               ></textarea>
                             </div>
-                            <div className="btn-group btn-group-toggle" data-toggle="buttons">
-                              <label className={`btn btn-secondary ${status === "active" ? "active" : ""}`}>
+
+                            <div className="btn-group mb-2" role="group" aria-label="Basic radio toggle button group">
+                              <label className={`btn btn-outline-primary ${status === "active" ? "active" : ""}`}>
                                 <input
                                   type="radio"
                                   name="status"
                                   value="active"
+                                  className="btn-check"
                                   autoComplete="off"
                                   checked={status === "active"}
                                   onChange={(e) => setStatus(e.target.value)}
                                 />
                                 Active
                               </label>
-
-                              <label className={`btn btn-secondary ${status === "inactive" ? "active" : ""}`}>
+                              <label className={`btn btn-outline-primary ${status === "inactive" ? "active" : ""}`}>
                                 <input
                                   type="radio"
                                   name="status"
                                   value="inactive"
+                                  className="btn-check"
                                   autoComplete="off"
                                   checked={status === "inactive"}
                                   onChange={(e) => setStatus(e.target.value)}
@@ -321,11 +323,12 @@ const Station = () => {
                                 Inactive
                               </label>
 
-                              <label className={`btn btn-secondary ${status === "maintenance" ? "active" : ""}`}>
+                              <label className={`btn btn-outline-primary ${status === "maintenance" ? "active" : ""}`}>
                                 <input
                                   type="radio"
                                   name="status"
                                   value="maintenance"
+                                  className="btn-check"
                                   autoComplete="off"
                                   checked={status === "maintenance"}
                                   onChange={(e) => setStatus(e.target.value)}
