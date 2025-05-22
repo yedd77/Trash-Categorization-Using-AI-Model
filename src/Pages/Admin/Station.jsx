@@ -1,11 +1,12 @@
 import React, { useState, useEffect, use } from 'react'
 import AdminNavbar from './Components/AdminNavbar'
 import Sidebar from './Components/sidebar'
-import { collection, getDocs, doc, setDoc, getCountFromServer, query, where } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getCountFromServer, query, where, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { Link } from 'react-router-dom'
 import "../Admin/css/adminlte.css"
 import "../Admin/js/adminlte.js"
+import QRDownload from './Components/QRDownload.jsx'
 
 const Station = () => {
 
@@ -17,6 +18,12 @@ const Station = () => {
   const [brokenStationCount, setBrokenStationCount] = useState(0);
   const [stations, setStations] = useState([]);
   const [selectedStation, setSelectedStation] = useState(null);
+  const [status, setStatus] = useState("");
+  const [message, setMessage] = useState("");
+  const [stationName, setStationName] = useState("");
+  const [stationCoordinate, setStationCoordinate] = useState("");
+  const [stationInstruction, setStationInstruction] = useState("");
+
 
   // function to fetch station from Firestore
   useEffect(() => {
@@ -89,6 +96,34 @@ const Station = () => {
         return "badge bg-danger";
       default:
         return "badge bg-light text-dark"; // fallback
+    }
+  };
+
+  // Function to handle the change of the station status
+  useEffect(() => {
+    if (selectedStation) {
+      setStationName(selectedStation.stationName || '');
+      setStationCoordinate(selectedStation.stationCoordinate || '');
+      setStationInstruction(selectedStation.stationInstruction || '');
+      setStatus(selectedStation.stationStatus || '');
+    }
+  }, [selectedStation]);
+
+  // Function to handle the update of the station status
+  const handleUpdateStatus = async (e) => {
+    e.preventDefault();
+    try {
+      const docRef = doc(db, "Station", selectedStation.binID);
+      await updateDoc(docRef, {
+        stationName,
+        stationCoordinate,
+        stationInstruction,
+        stationStatus: status,
+      });
+      setMessage("Station status updated successfully");
+    } catch (error) {
+      console.error("Error updating station status: ", error);
+      setMessage("Error updating station status");
     }
   };
 
@@ -196,7 +231,7 @@ const Station = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="row">
+                  <div className="row mt-4">
                     <div className="col-md-12">
                       <div className="card card-outline card-info">
                         <div className="card-header">
@@ -213,7 +248,7 @@ const Station = () => {
                     </div>
                   </div>
                   {selectedStation && (
-                    <div className="row">
+                    <div className="row mt-4">
                       <div className="col-md-12">
                         <div className="card card-outline card-info">
                           <div className="card-header">
@@ -239,27 +274,70 @@ const Station = () => {
                             </div>
                             <div className="form-group">
                               <label>Station Name</label>
-                              <input className="form-control" value={selectedStation.stationName} />
+                              <input
+                                className="form-control"
+                                value={stationName}
+                                onChange={e => setStationName(e.target.value)}
+                              />
                             </div>
                             <div className="form-group">
                               <label>Station Coordinate</label>
-                              <input className="form-control" id="exampleInputPassword1" value={selectedStation.stationCoordinate} />
+                              <input
+                                className="form-control"
+                                value={stationCoordinate}
+                                onChange={e => setStationCoordinate(e.target.value)}
+                              />
                             </div>
                             <div className="form-group">
                               <label>Station Specific Instruction</label>
-                              <textarea className='form-control' value={selectedStation.stationInstruction}></textarea>
+                              <textarea
+                                className="form-control"
+                                value={stationInstruction}
+                                onChange={e => setStationInstruction(e.target.value)}
+                              ></textarea>
                             </div>
                             <div className="btn-group btn-group-toggle" data-toggle="buttons">
-                              <label className="btn bg-olive">
-                                <input type="radio" name="options" id="option_b1" autocomplete="off" checked=""/> Active
+                              <label className={`btn btn-secondary ${status === "active" ? "active" : ""}`}>
+                                <input
+                                  type="radio"
+                                  name="status"
+                                  value="active"
+                                  autoComplete="off"
+                                  checked={status === "active"}
+                                  onChange={(e) => setStatus(e.target.value)}
+                                />
+                                Active
                               </label>
-                              <label className="btn bg-olive">
-                                <input type="radio" name="options" id="option_b2" autocomplete="off"/> Radio
+
+                              <label className={`btn btn-secondary ${status === "inactive" ? "active" : ""}`}>
+                                <input
+                                  type="radio"
+                                  name="status"
+                                  value="inactive"
+                                  autoComplete="off"
+                                  checked={status === "inactive"}
+                                  onChange={(e) => setStatus(e.target.value)}
+                                />
+                                Inactive
                               </label>
-                              <label className="btn bg-olive active">
-                                <input type="radio" name="options" id="option_b3" autocomplete="off"/> Radio
+
+                              <label className={`btn btn-secondary ${status === "maintenance" ? "active" : ""}`}>
+                                <input
+                                  type="radio"
+                                  name="status"
+                                  value="maintenance"
+                                  autoComplete="off"
+                                  checked={status === "maintenance"}
+                                  onChange={(e) => setStatus(e.target.value)}
+                                />
+                                Maintenance
                               </label>
                             </div>
+                            {/* TODO - Update, Delete and generate QR Button*/}
+                          </div>
+                          <div className="card-footer">
+                            <QRDownload stationURL={selectedStation.stationURL} />
+                            <a type="button" className="btn btn-primary" onClick={handleUpdateStatus}>Update</a>
                           </div>
                         </div>
                       </div>
