@@ -42,7 +42,7 @@ export default function QRDownload({ stationURL }) {
       </div>
 
       {/* Download button only */}
-      <button className="btn btn-success" onClick={handleDownload}>
+      <button className="btn btn-primary my-2 mx-2" onClick={handleDownload}>
         Download QR Code
       </button>
     </>

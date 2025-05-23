@@ -1,7 +1,7 @@
 import React, { useState, useEffect, use } from 'react'
 import AdminNavbar from './Components/AdminNavbar'
 import Sidebar from './Components/sidebar'
-import { collection, getDocs, doc, setDoc, getCountFromServer, query, where, updateDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getCountFromServer, query, where, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { Link } from 'react-router-dom'
 import "../Admin/css/adminlte.css"
@@ -23,6 +23,8 @@ const Station = () => {
   const [stationName, setStationName] = useState("");
   const [stationCoordinate, setStationCoordinate] = useState("");
   const [stationInstruction, setStationInstruction] = useState("");
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
 
   // function to fetch station from Firestore
@@ -60,7 +62,7 @@ const Station = () => {
     // Fetching the count of broken stations from Firestore
     const countBrokenStation = async () => {
       const stationRef = collection(db, "Station");
-      const q = query(stationRef, where("stationStatus", "==", "broken"));
+      const q = query(stationRef, where("stationStatus", "==", "maintenance"));
       const snapshot = await getCountFromServer(q);
       const count = snapshot.data().count;
       setBrokenStationCount(count);
@@ -92,7 +94,7 @@ const Station = () => {
         return "badge bg-warning";
       case "active":
         return "badge bg-success";
-      case "broken":
+      case "maintenance":
         return "badge bg-danger";
       default:
         return "badge bg-light text-dark"; // fallback
@@ -109,8 +111,8 @@ const Station = () => {
     }
   }, [selectedStation]);
 
-  // Function to handle the update of the station status
-  const handleUpdateStatus = async (e) => {
+  // Function to handle the update of the station
+  const handleUpdate = async (e) => {
     e.preventDefault();
     try {
       const docRef = doc(db, "Station", selectedStation.binID);
@@ -124,8 +126,50 @@ const Station = () => {
     } catch (error) {
       console.error("Error updating station status: ", error);
       setMessage("Error updating station status");
+    } finally {
+      window.location.reload();
     }
-  };
+  }
+
+  //function to show the update confirmation modal
+  const showUpdateConfirmation = (e) => {
+    e.preventDefault();
+    setShowUpdateModal(true);
+  }
+
+  // function to handle the update confirmation
+  const handleConfirmUpdate = async (e) => {
+    setShowUpdateModal(false);
+    await handleUpdate(e);
+  }
+
+  // function to show the delete confirmation modal
+  const showDeleteConfirmation = (e) => {
+    e.preventDefault();
+    setShowDeleteModal(true);
+  }
+
+  // function to handle the delete confirmation
+  const handleConfirmDelete = async (e) => {
+    setShowDeleteModal(false);
+    await handleDelete(e);
+  }
+
+  // function to handle the delete of the station
+  const handleDelete = async (e) => {
+    e.preventDefault();
+    try {
+      const docRef = doc(db, "Station", selectedStation.binID);
+      await deleteDoc(docRef);
+      setMessage("Station deleted successfully");
+      setSelectedStation(null);
+    } catch (error) {
+      console.error("Error deleting station: ", error);
+      setMessage("Error deleting station");
+    } finally {
+      window.location.reload();
+    }
+  }
 
   return (
     <>
@@ -147,35 +191,56 @@ const Station = () => {
               <section className="content">
                 <div className="container-fluid">
                   <div className="row">
-                    <div className="col-lg-3 col-6">
-                      <div className="small-box bg-info">
-                        <div className="inner" style={{ color: "#fff" }}>
-                          <h3>{stationCount}</h3>
-                          <p>Total Station</p>
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <div className="info-box shadow-sm">
+                        <span className="info-box-icon text-bg-primary shadow-sm">
+                          <i className="bi bi-trash"></i>
+                        </span>
+                        <div className="info-box-content">
+                          <span className="info-box-text">Total Station</span>
+                          <span className="info-box-number">
+                            {stationCount}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="col-lg-3 col-6">
-                      <div className="small-box bg-success">
-                        <div className="inner" style={{ color: "#fff" }}>
-                          <h3>{activeStationCount}</h3>
-                          <p>Total Active Station</p>
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <div className="info-box shadow-sm">
+                        <span className="info-box-icon text-bg-success shadow-sm">
+                          <i className="bi bi-check"></i>
+                        </span>
+                        <div className="info-box-content">
+                          <span className="info-box-text">Total Active Station</span>
+                          <span className="info-box-number">
+                            {activeStationCount}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="col-lg-3 col-6">
-                      <div className="small-box bg-warning">
-                        <div className="inner" style={{ color: "#fff" }}>
-                          <h3>{inactiveStationCount}</h3>
-                          <p>Total Inactive Station</p>
+
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <div className="info-box shadow-sm">
+                        <span className="info-box-icon text-bg-warning shadow-sm">
+                          <i className="bi bi-x-lg"></i>
+                        </span>
+                        <div className="info-box-content">
+                          <span className="info-box-text">Total Inactive Station</span>
+                          <span className="info-box-number">
+                            {inactiveStationCount}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="col-lg-3 col-6">
-                      <div className="small-box bg-danger">
-                        <div className="inner" style={{ color: "#fff" }}>
-                          <h3>{brokenStationCount}</h3>
-                          <p>Total Broken Station</p>
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <div className="info-box shadow-sm">
+                        <span className="info-box-icon text-bg-danger shadow-sm">
+                          <i className="bi bi-gear-fill"></i>
+                        </span>
+                        <div className="info-box-content">
+                          <span className="info-box-text">Total Broken Station</span>
+                          <span className="info-box-number">
+                            {brokenStationCount}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -225,6 +290,7 @@ const Station = () => {
                                   </td>
                                 </tr>
                               ))}
+                              <tr><td colSpan={5} className='text-center' disabled>Showing {stations.length} record{stations.length !== 1 ? 's' : ''} from database</td></tr>
                             </tbody>
                           </table>
                         </div>
@@ -297,7 +363,7 @@ const Station = () => {
                               ></textarea>
                             </div>
 
-                            <div className="btn-group mb-2" role="group" aria-label="Basic radio toggle button group">
+                            <div className="btn-group my-4" role="group" aria-label="Basic radio toggle button group">
                               <label className={`btn btn-outline-primary ${status === "active" ? "active" : ""}`}>
                                 <input
                                   type="radio"
@@ -336,17 +402,55 @@ const Station = () => {
                                 Maintenance
                               </label>
                             </div>
-                            {/* TODO - Update, Delete and generate QR Button*/}
                           </div>
                           <div className="card-footer">
                             <QRDownload stationURL={selectedStation.stationURL} />
-                            <a type="button" className="btn btn-primary" onClick={handleUpdateStatus}>Update</a>
+                            <button type='button' className='btn btn-warning my-2 mx-2' onClick={showUpdateConfirmation}>update</button>
+                            <button type='button' className='btn btn-danger my-2 mx-2' onClick={showDeleteConfirmation}>Delete</button>
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
+                {showUpdateModal && (
+                  <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog">
+                      <div className="modal-content">
+                        <div className="modal-header">
+                          <h5 className="modal-title">Confirm Update</h5>
+                          <button type="button" className="btn-close" onClick={() => setShowUpdateModal(false)} aria-label="Close"></button>
+                        </div>
+                        <div className="modal-body">
+                          <p>Are you sure you want to update this station?</p>
+                        </div>
+                        <div className="modal-footer">
+                          <button type="button" className="btn btn-secondary" onClick={() => setShowUpdateModal(false)}>Cancel</button>
+                          <button type="button" className="btn btn-primary" onClick={handleConfirmUpdate}>Yes, Update</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {showDeleteModal && (
+                  <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog">
+                      <div className="modal-content">
+                        <div className="modal-header bg-danger">
+                          <h5 className="modal-title" style={{ color: '#fff' }}>Confirm Delete</h5>
+                          <button type="button" className="btn-close" onClick={() => setShowModal(false)} aria-label="Close"></button>
+                        </div>
+                        <div className="modal-body">
+                          <p>Are you sure you want to delete this station?</p>
+                        </div>
+                        <div className="modal-footer">
+                          <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                          <button type="button" className="btn btn-danger" onClick={handleConfirmDelete}>Yes, Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
             </div>
           </div>

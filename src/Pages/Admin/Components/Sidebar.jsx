@@ -35,7 +35,7 @@ const Sidebar = () => (
             </a>
             <ul className="nav nav-treeview">
               <Link to="/admin/dashboard/station" className="nav-link">
-                <i className="nav-icon bi bi-circle"></i>
+                <i className="bi bi-trash"></i>
                 <p>Station</p>
               </Link>
               <li className="nav-item">
