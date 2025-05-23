@@ -188,274 +188,277 @@ const Station = () => {
                   </ol>
                 </div>
               </div>
-              <section className="content">
-                <div className="container-fluid">
-                  <div className="row">
-                    <div className="col-12 col-sm-6 col-md-3">
-                      <div className="info-box shadow-sm">
-                        <span className="info-box-icon text-bg-primary shadow-sm">
-                          <i className="bi bi-trash"></i>
-                        </span>
-                        <div className="info-box-content">
-                          <span className="info-box-text">Total Station</span>
-                          <span className="info-box-number">
-                            {stationCount}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-12 col-sm-6 col-md-3">
-                      <div className="info-box shadow-sm">
-                        <span className="info-box-icon text-bg-success shadow-sm">
-                          <i className="bi bi-check"></i>
-                        </span>
-                        <div className="info-box-content">
-                          <span className="info-box-text">Total Active Station</span>
-                          <span className="info-box-number">
-                            {activeStationCount}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="col-12 col-sm-6 col-md-3">
-                      <div className="info-box shadow-sm">
-                        <span className="info-box-icon text-bg-warning shadow-sm">
-                          <i className="bi bi-x-lg"></i>
-                        </span>
-                        <div className="info-box-content">
-                          <span className="info-box-text">Total Inactive Station</span>
-                          <span className="info-box-number">
-                            {inactiveStationCount}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-12 col-sm-6 col-md-3">
-                      <div className="info-box shadow-sm">
-                        <span className="info-box-icon text-bg-danger shadow-sm">
-                          <i className="bi bi-gear-fill"></i>
-                        </span>
-                        <div className="info-box-content">
-                          <span className="info-box-text">Total Broken Station</span>
-                          <span className="info-box-number">
-                            {brokenStationCount}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-12">
-                      <div className="card">
-                        <div className="card-header">
-                          <h3 className="card-title">Station</h3>
-                          <div className="card-tools">
-                            <div className="input-group input-group-sm">
-                              <div className="input-group-append">
-                                <button type="submit" className="btn btn-default">
-                                  <i className="fas fa-search"></i>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="card-body table-responsive p-0">
-                          <table className="table table-hover text-nowrap">
-                            <thead>
-                              <tr>
-                                <th>Station ID</th>
-                                <th>Station Name</th>
-                                <th>Date Created</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stations.map((station) => (
-                                <tr key={station.binID}>
-                                  <td>{station.binID}</td>
-                                  <td>{station.stationName}</td>
-                                  <td>{new Date(station.createdAt.seconds * 1000).toLocaleString()}</td>
-                                  <td>
-                                    <span className={getStatusClass(station.stationStatus)}>
-                                      {station.stationStatus}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <button className='btn btn-primary mb-2 btn-sm'
-                                      onClick={() => setSelectedStation(station)}>
-                                      View
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                              <tr><td colSpan={5} className='text-center' disabled>Showing {stations.length} record{stations.length !== 1 ? 's' : ''} from database</td></tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row mt-4">
-                    <div className="col-md-12">
-                      <div className="card card-outline card-info">
-                        <div className="card-header">
-                          <h3 className="card-title">Add New Station</h3>
-                        </div>
-                        <div className="card-body">
-                          Prepare an empty NFC tag and make sure to use mobile with supported NFC to create a new station.
-                        </div>
-                        <div className="card-footer">
-                          <Link to="/admin/dashboard/addStation" className="btn btn-primary">Add New Station</Link>
-                          { /* TODO - Create Validation that display if user arent with mobile or PWA*/}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {selectedStation && (
-                    <div className="row mt-4">
-                      <div className="col-md-12">
-                        <div className="card card-outline card-info">
-                          <div className="card-header">
-                            <h3 className="card-title">Station Details</h3>
-                          </div>
-                          <div className="card-body">
-                            <div className="form-group">
-                              <label>Bin ID</label>
-                              <input className="form-control" disabled value={selectedStation.binID} />
-                            </div>
-                            <div className='form-group'>
-                              <label>Tag UID</label>
-                              <input className="form-control" disabled value={selectedStation.tagUID} />
-                              {/* TODO - Add copy button*/}
-                            </div>
-                            <div className="form-group">
-                              <label>Station URL</label>
-                              <input className="form-control" disabled value={selectedStation.stationURL} />
-                            </div>
-                            <div className="form-group">
-                              <label>Created At</label>
-                              <input className="form-control" disabled value={new Date(selectedStation.createdAt.seconds * 1000).toLocaleString()} />
-                            </div>
-                            <div className="form-group">
-                              <label>Station Name</label>
-                              <input
-                                className="form-control"
-                                value={stationName}
-                                onChange={e => setStationName(e.target.value)}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label>Station Coordinate</label>
-                              <input
-                                className="form-control"
-                                value={stationCoordinate}
-                                onChange={e => setStationCoordinate(e.target.value)}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label>Station Specific Instruction</label>
-                              <textarea
-                                className="form-control"
-                                value={stationInstruction}
-                                onChange={e => setStationInstruction(e.target.value)}
-                              ></textarea>
-                            </div>
-
-                            <div className="btn-group my-4" role="group" aria-label="Basic radio toggle button group">
-                              <label className={`btn btn-outline-primary ${status === "active" ? "active" : ""}`}>
-                                <input
-                                  type="radio"
-                                  name="status"
-                                  value="active"
-                                  className="btn-check"
-                                  autoComplete="off"
-                                  checked={status === "active"}
-                                  onChange={(e) => setStatus(e.target.value)}
-                                />
-                                Active
-                              </label>
-                              <label className={`btn btn-outline-primary ${status === "inactive" ? "active" : ""}`}>
-                                <input
-                                  type="radio"
-                                  name="status"
-                                  value="inactive"
-                                  className="btn-check"
-                                  autoComplete="off"
-                                  checked={status === "inactive"}
-                                  onChange={(e) => setStatus(e.target.value)}
-                                />
-                                Inactive
-                              </label>
-
-                              <label className={`btn btn-outline-primary ${status === "maintenance" ? "active" : ""}`}>
-                                <input
-                                  type="radio"
-                                  name="status"
-                                  value="maintenance"
-                                  className="btn-check"
-                                  autoComplete="off"
-                                  checked={status === "maintenance"}
-                                  onChange={(e) => setStatus(e.target.value)}
-                                />
-                                Maintenance
-                              </label>
-                            </div>
-                          </div>
-                          <div className="card-footer">
-                            <QRDownload stationURL={selectedStation.stationURL} />
-                            <button type='button' className='btn btn-warning my-2 mx-2' onClick={showUpdateConfirmation}>update</button>
-                            <button type='button' className='btn btn-danger my-2 mx-2' onClick={showDeleteConfirmation}>Delete</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {showUpdateModal && (
-                  <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog">
-                      <div className="modal-content">
-                        <div className="modal-header">
-                          <h5 className="modal-title">Confirm Update</h5>
-                          <button type="button" className="btn-close" onClick={() => setShowUpdateModal(false)} aria-label="Close"></button>
-                        </div>
-                        <div className="modal-body">
-                          <p>Are you sure you want to update this station?</p>
-                        </div>
-                        <div className="modal-footer">
-                          <button type="button" className="btn btn-secondary" onClick={() => setShowUpdateModal(false)}>Cancel</button>
-                          <button type="button" className="btn btn-primary" onClick={handleConfirmUpdate}>Yes, Update</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {showDeleteModal && (
-                  <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog">
-                      <div className="modal-content">
-                        <div className="modal-header bg-danger">
-                          <h5 className="modal-title" style={{ color: '#fff' }}>Confirm Delete</h5>
-                          <button type="button" className="btn-close" onClick={() => setShowModal(false)} aria-label="Close"></button>
-                        </div>
-                        <div className="modal-body">
-                          <p>Are you sure you want to delete this station?</p>
-                        </div>
-                        <div className="modal-footer">
-                          <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                          <button type="button" className="btn btn-danger" onClick={handleConfirmDelete}>Yes, Delete</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </section>
             </div>
           </div>
-        </div >
-      </div >
+          <div className="app-content">
+            <div className="content">
+            <div className="container-fluid">
+              <div className="row">
+                <div className="col-12 col-sm-6 col-md-3">
+                  <div className="info-box shadow-sm">
+                    <span className="info-box-icon text-bg-primary shadow-sm">
+                      <i className="bi bi-trash"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Total Station</span>
+                      <span className="info-box-number">
+                        {stationCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-6 col-md-3">
+                  <div className="info-box shadow-sm">
+                    <span className="info-box-icon text-bg-success shadow-sm">
+                      <i className="bi bi-check"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Total Active Station</span>
+                      <span className="info-box-number">
+                        {activeStationCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-12 col-sm-6 col-md-3">
+                  <div className="info-box shadow-sm">
+                    <span className="info-box-icon text-bg-warning shadow-sm">
+                      <i className="bi bi-x-lg"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Total Inactive Station</span>
+                      <span className="info-box-number">
+                        {inactiveStationCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-6 col-md-3">
+                  <div className="info-box shadow-sm">
+                    <span className="info-box-icon text-bg-danger shadow-sm">
+                      <i className="bi bi-gear-fill"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Total Broken Station</span>
+                      <span className="info-box-number">
+                        {brokenStationCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="row">
+                <div className="col-12">
+                  <div className="card">
+                    <div className="card-header">
+                      <h3 className="card-title">Station List</h3>
+                      <div className="card-tools">
+                        <div className="input-group input-group-sm">
+                          <div className="input-group-append">
+                            <button type="submit" className="btn btn-default">
+                              <i className="fas fa-search"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="card-body table-responsive p-0">
+                      <table className="table table-hover text-nowrap">
+                        <thead>
+                          <tr>
+                            <th>Station ID</th>
+                            <th>Station Name</th>
+                            <th>Date Created</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stations.map((station) => (
+                            <tr key={station.binID}>
+                              <td>{station.binID}</td>
+                              <td>{station.stationName}</td>
+                              <td>{new Date(station.createdAt.seconds * 1000).toLocaleString()}</td>
+                              <td>
+                                <span className={getStatusClass(station.stationStatus)}>
+                                  {station.stationStatus}
+                                </span>
+                              </td>
+                              <td>
+                                <button className='btn btn-primary mb-2 btn-sm'
+                                  onClick={() => setSelectedStation(station)}>
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr><td colSpan={5} className='text-center' disabled>Showing {stations.length} record{stations.length !== 1 ? 's' : ''} from database</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="row mt-4">
+                <div className="col-md-12">
+                  <div className="card card-outline card-info">
+                    <div className="card-header">
+                      <h3 className="card-title">Add New Station</h3>
+                    </div>
+                    <div className="card-body">
+                      Prepare an empty NFC tag and make sure to use mobile with supported NFC to create a new station.
+                    </div>
+                    <div className="card-footer">
+                      <Link to="/admin/dashboard/addStation" className="btn btn-primary">Add New Station</Link>
+                      { /* TODO - Create Validation that display if user arent with mobile or PWA*/}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {selectedStation && (
+                <div className="row mt-4">
+                  <div className="col-md-12">
+                    <div className="card card-outline card-info">
+                      <div className="card-header">
+                        <h3 className="card-title">Station Details</h3>
+                      </div>
+                      <div className="card-body">
+                        <div className="form-group">
+                          <label>Bin ID</label>
+                          <input className="form-control" disabled value={selectedStation.binID} />
+                        </div>
+                        <div className='form-group'>
+                          <label>Tag UID</label>
+                          <input className="form-control" disabled value={selectedStation.tagUID} />
+                          {/* TODO - Add copy button*/}
+                        </div>
+                        <div className="form-group">
+                          <label>Station URL</label>
+                          <input className="form-control" disabled value={selectedStation.stationURL} />
+                        </div>
+                        <div className="form-group">
+                          <label>Created At</label>
+                          <input className="form-control" disabled value={new Date(selectedStation.createdAt.seconds * 1000).toLocaleString()} />
+                        </div>
+                        <div className="form-group">
+                          <label>Station Name</label>
+                          <input
+                            className="form-control"
+                            value={stationName}
+                            onChange={e => setStationName(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Station Coordinate</label>
+                          <input
+                            className="form-control"
+                            value={stationCoordinate}
+                            onChange={e => setStationCoordinate(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Station Specific Instruction</label>
+                          <textarea
+                            className="form-control"
+                            value={stationInstruction}
+                            onChange={e => setStationInstruction(e.target.value)}
+                          ></textarea>
+                        </div>
+
+                        <div className="btn-group my-4" role="group" aria-label="Basic radio toggle button group">
+                          <label className={`btn btn-outline-primary ${status === "active" ? "active" : ""}`}>
+                            <input
+                              type="radio"
+                              name="status"
+                              value="active"
+                              className="btn-check"
+                              autoComplete="off"
+                              checked={status === "active"}
+                              onChange={(e) => setStatus(e.target.value)}
+                            />
+                            Active
+                          </label>
+                          <label className={`btn btn-outline-primary ${status === "inactive" ? "active" : ""}`}>
+                            <input
+                              type="radio"
+                              name="status"
+                              value="inactive"
+                              className="btn-check"
+                              autoComplete="off"
+                              checked={status === "inactive"}
+                              onChange={(e) => setStatus(e.target.value)}
+                            />
+                            Inactive
+                          </label>
+
+                          <label className={`btn btn-outline-primary ${status === "maintenance" ? "active" : ""}`}>
+                            <input
+                              type="radio"
+                              name="status"
+                              value="maintenance"
+                              className="btn-check"
+                              autoComplete="off"
+                              checked={status === "maintenance"}
+                              onChange={(e) => setStatus(e.target.value)}
+                            />
+                            Maintenance
+                          </label>
+                        </div>
+                      </div>
+                      <div className="card-footer">
+                        <QRDownload stationURL={selectedStation.stationURL} />
+                        <button type='button' className='btn btn-warning my-2 mx-2' onClick={showUpdateConfirmation}>update</button>
+                        <button type='button' className='btn btn-danger my-2 mx-2' onClick={showDeleteConfirmation}>Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {showUpdateModal && (
+              <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h5 className="modal-title">Confirm Update</h5>
+                      <button type="button" className="btn-close" onClick={() => setShowUpdateModal(false)} aria-label="Close"></button>
+                    </div>
+                    <div className="modal-body">
+                      <p>Are you sure you want to update this station?</p>
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn btn-secondary" onClick={() => setShowUpdateModal(false)}>Cancel</button>
+                      <button type="button" className="btn btn-primary" onClick={handleConfirmUpdate}>Yes, Update</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {showDeleteModal && (
+              <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                  <div className="modal-content">
+                    <div className="modal-header bg-danger">
+                      <h5 className="modal-title" style={{ color: '#fff' }}>Confirm Delete</h5>
+                      <button type="button" className="btn-close" onClick={() => setShowModal(false)} aria-label="Close"></button>
+                    </div>
+                    <div className="modal-body">
+                      <p>Are you sure you want to delete this station?</p>
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                      <button type="button" className="btn btn-danger" onClick={handleConfirmDelete}>Yes, Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }

@@ -17,6 +17,7 @@ import { getDoc } from 'firebase/firestore'
 
 import Station from './Pages/Admin/Station'
 import AddStation from './Pages/Admin/AddStation'
+import Users from './Pages/Admin/Users'
 
 
 function App() {
@@ -51,6 +52,13 @@ function App() {
         element={
           <AdminRoute>
             <AddStation />
+          </AdminRoute>
+        } 
+        />
+        <Route path="/admin/dashboard/users" 
+        element={
+          <AdminRoute>
+            <Users />
           </AdminRoute>
         } 
         />

@@ -7,15 +7,15 @@ const Sidebar = () => (
     data-bs-theme="dark"
     data-toggle="sidebar"
   >
-    <div className="sidebar-brand">
-      <a href="./index.html" className="brand-link">
-        <img
-          src="../../dist/assets/img/AdminLTELogo.png"
+    <div className="sidebar-brand d-flex justify-content-start mx-3">
+      <Link to="/admin/dashboard" className="brand-link">
+      <img
+          src="/public/icons/logo-black-white.png"
           alt="AdminLTE Logo"
           className="brand-image opacity-75 shadow"
         />
-        <span className="brand-text fw-light">AdminLTE 4</span>
-      </a>
+        <span className="brand-text fw-light">Bin Buddy Admin</span>
+      </Link>
     </div>
     <div className="sidebar-wrapper">
       <nav className="mt-2">
@@ -34,15 +34,17 @@ const Sidebar = () => (
               </p>
             </a>
             <ul className="nav nav-treeview">
-              <Link to="/admin/dashboard/station" className="nav-link">
-                <i className="bi bi-trash"></i>
-                <p>Station</p>
-              </Link>
+              <li className='nav-item'>
+                <Link to="/admin/dashboard/station" className="nav-link">
+                  <i className="bi bi-trash"></i>
+                  <p>Station</p>
+                </Link>
+              </li>
               <li className="nav-item">
-                <a href="./index2.html" className="nav-link">
-                  <i className="nav-icon bi bi-circle"></i>
-                  <p>Home</p>
-                </a>
+                <Link to="/admin/dashboard/users" className="nav-link">
+                  <i className="bi bi-person-fill"></i>
+                  <p>Users</p>
+                </Link>
               </li>
             </ul>
           </li>

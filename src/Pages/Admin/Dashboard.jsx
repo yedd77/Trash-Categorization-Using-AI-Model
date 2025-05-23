@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import Sidebar from './Components/sidebar'
 
 const Dashboard = () => {
-  
+
   return (
     <>
       <div className="app-wrapper">

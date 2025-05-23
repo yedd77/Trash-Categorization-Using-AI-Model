@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '../../../firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { Link } from 'react-router-dom';
 
 const AdminNavbar = ({ toggleSidebar }) => {
 
@@ -44,6 +45,9 @@ const AdminNavbar = ({ toggleSidebar }) => {
                         </li>
                     </ul>
                     <ul className="navbar-nav ms-auto">
+                        <Link to="/" className="btn btn-outline-primary mx-4">
+                        Go to Homepage
+                        </Link>
                         <li className="nav-item dropdown user-menu">
                             <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                                 <img
