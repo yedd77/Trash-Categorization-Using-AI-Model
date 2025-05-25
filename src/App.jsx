@@ -18,6 +18,8 @@ import { getDoc } from 'firebase/firestore'
 import Station from './Pages/Admin/Station'
 import AddStation from './Pages/Admin/AddStation'
 import Users from './Pages/Admin/Users'
+import Reward from './Pages/Admin/Reward'
+import Point from './Pages/Admin/Point'
 
 
 function App() {
@@ -62,8 +64,20 @@ function App() {
           </AdminRoute>
         } 
         />
-        
-
+        <Route path="/admin/dashboard/reward" 
+        element={
+          <AdminRoute>
+            <Reward />
+          </AdminRoute>
+        } 
+        />
+        <Route path="/admin/dashboard/point" 
+        element={
+          <AdminRoute>
+            <Point />
+          </AdminRoute>
+        } 
+        />
       </Routes>
     </Router>
   )
