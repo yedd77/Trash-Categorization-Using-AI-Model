@@ -4,7 +4,6 @@ import Sidebar from './Components/sidebar'
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 
-
 const AddStation = () => {
 
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -18,6 +17,7 @@ const AddStation = () => {
     const [error, setError] = useState('');
     const [NFCError, setNFCErrors] = useState(false);
     const [showNfcOverlay, setShowNfcOverlay] = useState(false);
+
 
 
     // Function to handle sidebar toggle

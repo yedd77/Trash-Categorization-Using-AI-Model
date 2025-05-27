@@ -51,7 +51,7 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
       <a className="navbar-brand" href="#">
-        <img src="https://via.placeholder.com/120x40?text=Logo" alt="Logo" height="40" />
+        <img src="#" alt="Logo" height="40" />
       </a>
 
       <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">

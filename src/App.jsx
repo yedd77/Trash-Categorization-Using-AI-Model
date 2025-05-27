@@ -21,6 +21,8 @@ import Users from './Pages/Admin/Users'
 import Reward from './Pages/Admin/Reward'
 import Point from './Pages/Admin/Point'
 
+import Test from './Pages/test' //DEBUG 
+
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
         <Route path="/ourApp" element={<OurApp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPass />} />
+        <Route path="/test" element={<Test />} /> {/* DEBUG */}
+
 
         {/* Admin Route */}
         <Route path="/admin/dashboard" 
