@@ -1,7 +1,7 @@
 import React, { useState, useEffect, use } from 'react'
 import AdminNavbar from './Components/AdminNavbar'
 import Sidebar from './Components/sidebar'
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getFirestore } from 'firebase/firestore'
 import { db } from '../../firebase'
 
 const AddStation = () => {
@@ -107,7 +107,6 @@ const AddStation = () => {
     }
 
     //TODO : Add code to permenantly write the NFC tag
-
     // Function to create a new UID and set the Bin ID
     useEffect(() => {
         setTagUID(crypto.randomUUID());
@@ -163,9 +162,9 @@ const AddStation = () => {
                                 <div className="col-sm-6"><h3 className="mb-0">Add Station</h3></div>
                                 <div className="col-sm-6">
                                     <ol className="breadcrumb float-sm-end">
-                                        <li className="breadcrumb-item">Home</li>
-                                        <li className="breadcrumb-item active">Station Dashboard</li>
-                                        <li className="breadcrumb-item active">Add Station</li>
+                                        <li className="breadcrumb-item">Dashboard</li>
+                                        <li className="breadcrumb-item">Station Dashboard</li>
+                                        <li className="breadcrumb-item">Add Station</li>
                                     </ol>
                                 </div>
                             </div>

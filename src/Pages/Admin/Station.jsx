@@ -183,8 +183,8 @@ const Station = () => {
                 <div className="col-sm-6"><h3 className="mb-0">Station Dashboard</h3></div>
                 <div className="col-sm-6">
                   <ol className="breadcrumb float-sm-end">
-                    <li className="breadcrumb-item">Home</li>
-                    <li className="breadcrumb-item active">Station Dashboard</li>
+                    <li className="breadcrumb-item">Dashboard</li>
+                    <li className="breadcrumb-item">Station Dashboard</li>
                   </ol>
                 </div>
               </div>

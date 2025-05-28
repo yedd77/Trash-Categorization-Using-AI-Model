@@ -4,6 +4,9 @@ import { useDropzone } from 'react-dropzone';
 import './Categorizer.css';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from 'firebase/app';
+import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
 
 const Categorizer = () => {
 
@@ -15,10 +18,24 @@ const Categorizer = () => {
   const [nfcError, setNfcError] = useState(""); // PROD: State to manage NFC error messages
   const [showNfcOverlay, setShowNfcOverlay] = useState(false); // PROD: State to manage NFC overlay visibility
   const [successfull, setSuccessfull] = useState(""); // DEBUG: State to manage successful NFC scan
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // handle uploading and dropping images
+  //set point for each item type thrown
+  const typeTrash = 1;
+  const typePaper = 4;
+  const typePlastic = 6;
+  const typeMetalGlass = 10;
+
+  // PROD: Set up Firebase functions and Firestore
+  const auth = getAuth();
+
+  // FLOW 1 
+  // handle drag and drop functionality using react-dropzone
+  // This allows users to drop images into the designated area
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    accept: 'image/*',
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png'],
+    },
     noClick: true, // Disable default click behavior
     onDrop: (acceptedFiles) => {
       const updatedFiles = acceptedFiles.map((file) =>
@@ -31,20 +48,10 @@ const Categorizer = () => {
     },
   });
 
-  // Generate image previews
-  const images = files.map((file) => (
-    <img
-      key={file.name}
-      src={file.preview}
-      style={{ width: '100px', height: '100px', objectFit: 'cover' }}
-      alt="preview"
-      onLoad={() => {
-        URL.revokeObjectURL(file.preview);
-      }}
-    />
-  ));
-
-  // Handle paste events to capture images from clipboard
+  // FLOW 1 
+  // handle paste events to allow users to paste images directly
+  // This listens for paste events and checks if the pasted content is an image
+  // If an image is pasted, it creates a preview URL and updates the files state
   useEffect(() => {
     const handlePaste = (event) => {
       const items = event.clipboardData?.items;
@@ -72,14 +79,25 @@ const Categorizer = () => {
     };
   }, []);
 
+  // PROD : FLOW 1 
+  // Check if the user is authenticated
+  useEffect(() => {
 
-  //DEBUG : Handle button click to imitate classification process
-  const dummyButtonClick = () => {
-    setButtonClicked(true);
-  }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+      } else {
+        console.log("User is not authenticated");
+        setIsAuthenticated(false);
+      }
+    });
 
-  //PROD : Function to check if user is on PWA
-  // This hook checks if the app is running in PWA mode
+    return () => unsubscribe(); // Clean up listener
+  }, []);
+
+  // PROD : FLOW 1
+  // This hook checks if the app is running in PWA mode which will allows
+  // the user to scan NFC tags and store points in Firestore
   function getIsPWA() {
     // Check if the app is running as a PWA
     if (document.referrer.startsWith('android-app://')) return true; // Trusted Web Activity (TWA) on Android
@@ -91,9 +109,98 @@ const Categorizer = () => {
     return false;
   }
 
-  //PROD : Handle the NFC Scan event to verify if user is at the location
-  const handleNFCScan = async () => {
+  // FLOW 2 
+  // Generate image previews for the uploaded files
+  // This maps over the files state and creates an img element for each file
+  const images = files.map((file) => (
+    <img
+      key={file.name}
+      src={file.preview}
+      style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+      alt="preview"
+      onLoad={() => {
+        URL.revokeObjectURL(file.preview);
+      }}
+    />
+  ));
 
+  // DEBUF : FLOW 3
+  // This function create a dummy simulation of classification of an item and stores points in Firestore
+  // It sets the buttonClicked state to true, which triggers the change of layout
+  // if user is authenticated, it will call the point function with the user's UID, item type, and points.
+  // to store the record of pending points in Firestore.
+  const dummyButtonClick = () => {
+    setButtonClicked(true);
+    let points = 0; // Initialize points variable
+    let itemtype = ""; // Initialize item type variable
+
+    if (isAuthenticated) {
+      //PROD : manually set the item type as plastic
+      const itemScanned = "plastic";
+
+      //PROD : Set points based on item type
+      if (itemScanned == "trash") {
+        points = typeTrash;
+      } else if (itemScanned == "paper") {
+        points = typePaper;
+      } else if (itemScanned == "plastic") {
+        points = typePlastic;
+      } else if (itemScanned == "metal" || itemScanned == "glass") {
+        points = typeMetalGlass;
+      } else {
+        points = 0;
+        console.error("Unknown item type scanned:", itemScanned); //DEBUG: Log unknown item type
+      }
+
+      //PROD : Set user UID
+      const user = auth.currentUser;
+      const uid = user ? user.uid : null; // Get the authenticated user's UID
+
+      //PROD : Set item type scanned
+      itemtype = itemScanned;
+
+      storePoints(uid, itemtype, points);
+    }
+  }
+
+  // PROD : FLOW 4
+  // Function to store pending points in Firestore Firebase
+  // This function can only available for PWA and auth user
+  // It will invoke once via callback from dummyButtonClick() 
+  // passing UID, itemType, and points and only be run with a successfull 
+  // intended scan
+  const db = getFirestore();
+  const storePoints = async (uid, itemtype, points) => {
+    try {
+      const now = Timestamp.now();
+      const expiresAt = Timestamp.fromMillis(now.toMillis() + 3 * 60 * 60 * 1000); // 3 hours expiration time
+
+      await addDoc(collection(db, "Points"), {
+        uid: uid,
+        itemType: itemtype,
+        points: points,
+        createdAt: now,
+        expiresAt: expiresAt,
+        isClaimed: false,
+        isExpired: false,
+      });
+
+      console.log("Pending points stored successfully."); // DEBUG: Log success message
+
+    } catch (error) {
+
+      console.error("Error storing pending points:", error); // DEBUG: Log error message
+    }
+  };
+
+  // PROD : FLOW 4
+  //To have this function active, the user must be authenticated and the app must be running in PWA mode
+  // This function is triggered when the user clicks the "Scan for rewards" button
+  //it well set the showNfcOverlay state to true, indicating that the NFC scan is ready
+  //it then will read the NFC tag using the NDEFReader API
+  // If the NFC tag data is valid, it will decode the data and extract the tagUID and binID from the URL
+  // then it will call the callVerifyScan function to verify the scan
+  const handleNFCScan = async () => {
     // Check if NFC is supported
     if (!("NDEFReader" in window)) {
       alert("NFC is not supported on this device.");
@@ -137,7 +244,6 @@ const Categorizer = () => {
 
               // Call function to verify the scan
               callVerifyScan(tagUID, binID);
-              setShowNfcOverlay(false);
               setSuccessfull("Scan successful!"); // DEBUG: Set success message
             } catch (err) {
               // catch any errors in URL parsing
@@ -158,21 +264,66 @@ const Categorizer = () => {
     }
   };
 
-  //PROD : Function to verify the NFC scan via invoking Firebase Cloud Function
-  // then we give JSON response either the scan is successful or invalid
+  // PROD : FLOW 5
+  // This function is called from handleNFCScan after a successful NFC scan
+  // Then it will call the Firebase function "verifyScan" with the tagUID and binID as parameters
+  // The function will verify the scan and update the user's points in Firestore
+  // If the scan is successful, 
   const callVerifyScan = async (tagUID, binID) => {
-    const functions = getFunctions(getApp(), "us-central1"); 
+    const functions = getFunctions(getApp(), "us-central1");
     const verifyScan = httpsCallable(functions, "verifyScan");
 
     try {
       const result = await verifyScan({ tagUID, binID });
-      alert(result.data.message);
+
+      if (result.data.success) {
+        alert(result.data.message);
+
+        // update record of user points in Firestore
+        const db = getFirestore();
+        const user = auth.currentUser;
+
+        try {
+          const pointsQuery = query(
+            collection(db, "Points"),
+            where("uid", "==", user.uid),
+            where("isClaimed", "==", false),
+            where("isExpired", "==", false),
+            where("expiresAt", ">", Timestamp.now())
+          );
+          const querySnapshot = await getDocs(pointsQuery);
+
+          if (querySnapshot.empty) {
+            console.log("No pending points found for user.");
+            return;
+          }
+
+          querySnapshot.forEach(async (doc) => {
+            const docRef = doc.ref;
+            await Promise.all(querySnapshot.docs.map(doc =>
+              updateDoc(docRef, {
+                isClaimed: true, // Mark the points as claimed
+                claimedAt: Timestamp.now() // Set the claimed timestamp
+              })
+            ));
+          });
+
+          alert("Points claimed successfully!");
+        } catch (err) {
+          console.error("Error updating points:", err.message);
+          alert("Error updating points: " + err.message);
+        }
+
+      } else {
+        alert(err.message);
+      }
+
+      setShowNfcOverlay(false); // Hide NFC overlay after scan
     } catch (err) {
-      console.error("Scan verification failed:", err.message);
-      alert(err.message);
+      console.error("Error verifying NFC scan:", err);
+      alert("Error verifying NFC scan: " + err.message);
     }
   };
-  
 
   return (
     <>
@@ -259,26 +410,29 @@ const Categorizer = () => {
                       </div>
                     </div>
                     <div>{images}</div>
-                    <div className="d-flex justify-content-center mb-4">
-                      <div className="text-center me-3">
-                        <p className="fw-semibold empty f-8 text-muted">No image?</p>
-                        <p className="fw-semibold empty f-8 text-muted">Try one of these images</p>
+                    <div className="d-flex flex-column flex-md-row justify-content-center align-items-center mb-7 text-center gap-2">
+                      <div className="mb-2 mb-md-0 me-md-3">
+                        <p className="fw-semibold text-muted mb-1">No image?</p>
+                        <p className="fw-semibold text-muted mb-0">Try one of these images</p>
                       </div>
-                      <img
-                        src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                        className="rounded-3 me-3"
-                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                      />
-                      <img
-                        src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                        className="rounded-3 me-3"
-                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                      />
-                      <img
-                        src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                        className="rounded-3 me-3"
-                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                      />
+
+                      <div className="d-flex flex-wrap justify-content-center gap-2">
+                        <img
+                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                          className="rounded-3"
+                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                        />
+                        <img
+                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                          className="rounded-3"
+                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                        />
+                        <img
+                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                          className="rounded-3"
+                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                        />
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -298,7 +452,7 @@ const Categorizer = () => {
 
                     <div className="text-center">
                       <button
-                        className="btn btn-lg rounded-4 col-3 mb-4 shadow fw-bold text-center"
+                        className="btn btn-lg rounded-4 mb-4 shadow fw-bold text-center w-75 w-md-25"
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
@@ -307,6 +461,7 @@ const Categorizer = () => {
                         <i className="bi bi-lightbulb-fill me-2"></i>Classify Trash
                       </button>
                     </div>
+
                   </>
                 )}
                 <div className="mt-auto text-center px-4 pb-3">
@@ -339,30 +494,37 @@ const Categorizer = () => {
                       </p>
                     </div>
                   </div>
-
-                  <div className="d-grid col-6 mt-5 pt-3 text-center gap-3 d-flex justify-content-center">
+                  <div className="mt-5 pt-3 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 text-center">
                     <button
-                      className="btn btn-lg rounded-4 mb-4 shadow fw-bold col-6 "
-                      type='button'
-                      style={{ backgroundColor: '#80BC44', color: '#fff' }}>
+                      className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
+                      type="button"
+                      style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                      onClick={() => window.location.reload()}
+                    >
                       <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                     </button>
 
-                    {isPWA && (<button
-                      className="btn btn-lg rounded-4 mb-4 shadow fw-bold col-6 "
-                      type='button'
-                      style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                      onClick={handleNFCScan}>
-                      <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
-                    </button>)}
+                    {isPWA && (
+                      <button
+                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
+                        type="button"
+                        style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                        onClick={handleNFCScan}
+                      >
+                        <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
+                      </button>
+                    )}
                   </div>
+
                 </div>
-                <div className="mt-auto text-center px-4 pb-3">
-                  <p className="fw-semibold empty text-muted">
-                    Install our app to get rewarded each time you scan and throw it correctly.
-                    {successfull && <span className="text-success">{successfull}</span>}
-                  </p>
-                </div>
+                {!isPWA && (
+                  <div className="mt-auto text-center px-8 pb-3">
+                    <p className="fw-semibold empty text-muted">
+                      Install our app to get rewarded each time you scan and throw it correctly.
+                      {successfull && <span className="text-success">{successfull}</span>}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
