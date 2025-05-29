@@ -10,7 +10,7 @@ const Sidebar = () => (
     <div className="sidebar-brand d-flex justify-content-start mx-3">
       <Link to="/admin/dashboard" className="brand-link">
       <img
-          src="/public/icons/logo-black-white.png"
+          src="/icons/logo-black-white.png"
           alt="AdminLTE Logo"
           className="brand-image opacity-75 shadow"
         />

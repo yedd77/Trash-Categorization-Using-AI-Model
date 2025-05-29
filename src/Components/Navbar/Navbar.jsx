@@ -43,7 +43,7 @@ const Navbar = () => {
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
       <a className="navbar-brand" href="#">
         <img src="/icons/icon-192x192.png" alt="Logo" height="40" />
-      </a>
+      </a> 
 
       <button
         className="navbar-toggler"

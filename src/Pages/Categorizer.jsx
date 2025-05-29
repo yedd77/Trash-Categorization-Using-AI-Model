@@ -303,7 +303,8 @@ const Categorizer = () => {
             await Promise.all(querySnapshot.docs.map(doc =>
               updateDoc(docRef, {
                 isClaimed: true, // Mark the points as claimed
-                claimedAt: Timestamp.now() // Set the claimed timestamp
+                claimedAt: Timestamp.now(), // Set the claimed timestamp
+                claimedBin : binID // Store the bin ID where the points were claimed
               })
             ));
           });
