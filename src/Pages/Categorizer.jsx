@@ -171,11 +171,15 @@ const Categorizer = () => {
   // intended scan
   const db = getFirestore();
   const storePoints = async (uid, itemtype, points) => {
+
     try {
+      let user = auth.currentUser; 
+      const username = user && user.displayName ? user.displayName : "user";
       const now = Timestamp.now();
       const expiresAt = Timestamp.fromMillis(now.toMillis() + 3 * 60 * 60 * 1000); // 3 hours expiration time
 
       await addDoc(collection(db, "Points"), {
+        username: username,
         uid: uid,
         itemType: itemtype,
         points: points,
@@ -304,7 +308,7 @@ const Categorizer = () => {
               updateDoc(docRef, {
                 isClaimed: true, // Mark the points as claimed
                 claimedAt: Timestamp.now(), // Set the claimed timestamp
-                claimedBin : binID // Store the bin ID where the points were claimed
+                claimedBin: binID // Store the bin ID where the points were claimed
               })
             ));
           });

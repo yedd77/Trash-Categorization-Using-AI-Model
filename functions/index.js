@@ -1,6 +1,7 @@
 //ESModule syntax for Firebase Functions
 import { onRequest } from "firebase-functions/v2/https";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import admin from "firebase-admin";
 import corsLib from "cors";
@@ -64,4 +65,35 @@ export const verifyScan = onCall(async (request) => {
     success: true,
     message: "Scan verified. 10 points awarded.",
   };
+});
+
+export const checkAndMarkExpiredPoints = onSchedule("every 60 minutes", async () => {
+  const db = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+
+  try {
+    const snapshot = await db
+      .collection("Points")
+      .where("expiresAt", "<=", now)
+      .where("isExpired", "==", false)
+      .get();
+
+    if (snapshot.empty) {
+      logger.info("No expired points to update.");
+      return;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        isExpired: true,
+        expiredAt: now,
+      });
+    });
+
+    await batch.commit();
+    logger.info(`Marked ${snapshot.size} points as expired.`);
+  } catch (err) {
+    logger.error("Error updating expired points:", err);
+  }
 });

@@ -56,6 +56,23 @@ const Profile = () => {
 
     return (
         <>
+            <Navbar />
+            <div className="d-flex flex-column">
+                <div className="d-flex flex-column flex-grow-1 pt-5">
+                    <div className="row">
+                        <div className="col-6">
+                            <div className="mx-3 my-3"><p>Profile Settings</p></div>
+                            <div className="card px-3 py-3">
+                                <p>Change Username</p>
+                            </div>
+                        </div>
+                        <div className="col-6">4s</div>
+                    </div>
+                </div>
+            </div>
+            <div className="container-fluid">
+
+            </div>
             <div>
                 <Navbar />
                 <button className='btn btn-danger' onClick={handlelogout}>
