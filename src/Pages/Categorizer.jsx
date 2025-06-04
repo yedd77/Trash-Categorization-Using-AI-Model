@@ -9,6 +9,8 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import "./responsive.css";
 
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Categorizer = () => {
 
   // State to manage files and image presence
@@ -20,6 +22,9 @@ const Categorizer = () => {
   const [showNfcOverlay, setShowNfcOverlay] = useState(false); // PROD: State to manage NFC overlay visibility
   const [successfull, setSuccessfull] = useState(""); // DEBUG: State to manage successful NFC scan
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [prediction, setPrediction] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   //set point for each item type thrown
   const typeTrash = 1;
@@ -329,6 +334,46 @@ const Categorizer = () => {
       console.error("Error verifying NFC scan:", err);
       alert("Error verifying NFC scan: " + err.message);
     }
+  };
+
+  // Example function to call Flask API
+  async function sendImageToBackend(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    return data;
+  }
+
+  // Function to handle image classification
+  const handleClassify = async () => {
+    if (!files.length) {
+      setError('Please upload an image first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setPrediction(null);
+    try {
+      const result = await sendImageToBackend(files[0]);
+      setPrediction(result);
+    } catch (err) {
+      setError('Failed to classify image.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add this function inside your Categorizer component
+  const handleClear = () => {
+    setFiles([]);
+    setHasImage(false);
+    setPrediction(null);
+    setError(null);
   };
 
   return (
