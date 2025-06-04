@@ -183,6 +183,16 @@ const Profile = () => {
     }
 
     // Function to handle logout
+     const handlelogout = () => {
+        auth.signOut().then(() => {
+            console.log("User signed out successfully.");
+            navigate("/")
+        }).catch((error) => {
+            console.error("Error signing out: ", error);
+        });
+    }
+    
+    //function to check if user is on PWA or not
     function getIsPWA() {
         // Check if the app is running as a PWA
         if (document.referrer.startsWith('android-app://')) return true; // Trusted Web Activity (TWA) on Android
@@ -194,10 +204,7 @@ const Profile = () => {
         return false;
     }
 
-    //function to check if user is on PWA or not
-
-
-
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
