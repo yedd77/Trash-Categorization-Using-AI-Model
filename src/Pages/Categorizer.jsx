@@ -6,6 +6,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from 'firebase/app';
 import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import "./responsive.css";
 
 
 const Categorizer = () => {
@@ -401,7 +402,7 @@ const Categorizer = () => {
                       >
                         <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
                           <button
-                            className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold"
+                            className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold responsive-font"
                             id="btn-1"
                             type="button"
                             style={{ backgroundColor: '#80BC44', color: '#fff' }}
@@ -409,16 +410,16 @@ const Categorizer = () => {
                           >
                             <i className="bi bi-upload me-3"></i>Upload Image
                           </button>
-                          <p className="fw-semibold empty f-9 text-muted lh-sm">or drop a file here</p>
-                          <p className="fw-semibold empty f-9 text-muted lh-sm">CTRL + V to paste an image</p>
+                          <p className="fw-medium empty fs-7 text-muted lh-sm">or drop a file here</p>
+                          <p className="fw-medium empty fs-7 text-muted lh-sm">CTRL + V to paste an image</p>
                         </div>
                       </div>
                     </div>
                     <div>{images}</div>
                     <div className="d-flex flex-column flex-md-row justify-content-center align-items-center mb-7 text-center gap-2">
                       <div className="mb-2 mb-md-0 me-md-3">
-                        <p className="fw-semibold text-muted mb-1">No image?</p>
-                        <p className="fw-semibold text-muted mb-0">Try one of these images</p>
+                        <p className="fw-medium text-muted mb-1">No image?</p>
+                        <p className="fw-medium text-muted mb-0">Try one of these images</p>
                       </div>
 
                       <div className="d-flex flex-wrap justify-content-center gap-2">
@@ -455,9 +456,9 @@ const Categorizer = () => {
                       </div>
                     </div>
 
-                    <div className="text-center">
+                    <div className="text-center d-flex flex-column align-items-center mb-3">
                       <button
-                        className="btn btn-lg rounded-4 mb-4 shadow fw-bold text-center w-75 w-md-25"
+                        className="btn btn-lg rounded-4 mb-3 shadow fw-bold text-center responsive-font"
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
@@ -465,12 +466,21 @@ const Categorizer = () => {
                       >
                         <i className="bi bi-lightbulb-fill me-2"></i>Classify Trash
                       </button>
+                       <button
+                        className="btn btn-lg rounded-4 mb-3 shadow fw-bold text-center responsive-font"
+                        id="btn-2"
+                        type="button"
+                        style={{ backgroundColor: '#c9665f', color: '#fff' }}
+                        onClick={() => window.location.reload()} // DEBUG: Simulate classification
+                      >
+                        <i className="bi bi-file-earmark-x me-2"></i>Remove Image
+                      </button>
                     </div>
 
                   </>
                 )}
                 <div className="mt-auto text-center px-4 pb-3">
-                  <p className="fw-semibold empty text-muted">
+                  <p className="fw-medium empty text-muted">
                     Install our app to get rewarded each time you scan and throw it correctly.
                   </p>
                 </div>
