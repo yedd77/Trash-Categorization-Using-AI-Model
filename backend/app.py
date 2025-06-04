@@ -11,8 +11,24 @@ CORS(app)  # Allow requests from your React frontend
 # Load your YOLO model (adjust path as needed)
 model = YOLO('best.pt')  # Replace with your trained model path
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+    return response
+
 @app.route('/api/predict', methods=['POST'])
 def predict():
+
+    if request.method == 'OPTIONS':
+        # Preflight request
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+        return response
+
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     file = request.files['file']
@@ -41,4 +57,4 @@ def predict():
     return jsonify({'predictions': predictions})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=8080)
