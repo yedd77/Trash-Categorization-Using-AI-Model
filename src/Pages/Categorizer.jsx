@@ -23,19 +23,22 @@ const Categorizer = () => {
   const [successfull, setSuccessfull] = useState(""); // DEBUG: State to manage successful NFC scan
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [prediction, setPrediction] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [confidence, setConfidence] = useState(null);
+  const [havePrediction, setHavePrediction] = useState(false);
   const [error, setError] = useState(null);
+  const [onLoader, setOnLoader] = useState(false);
+  const [itemType, setItemType] = useState("");
+  const [instructions, setInstructions] = useState("");
 
-  //set point for each item type thrown
+  // Set point for each item type thrown
   const typeTrash = 1;
   const typePaper = 4;
   const typePlastic = 6;
   const typeMetalGlass = 10;
 
-  // PROD: Set up Firebase functions and Firestore
+  // Set up Firebase functions and Firestore
   const auth = getAuth();
 
-  // FLOW 1 
   // handle drag and drop functionality using react-dropzone
   // This allows users to drop images into the designated area
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -54,7 +57,6 @@ const Categorizer = () => {
     },
   });
 
-  // FLOW 1 
   // handle paste events to allow users to paste images directly
   // This listens for paste events and checks if the pasted content is an image
   // If an image is pasted, it creates a preview URL and updates the files state
@@ -85,10 +87,8 @@ const Categorizer = () => {
     };
   }, []);
 
-  // PROD : FLOW 1 
   // Check if the user is authenticated
   useEffect(() => {
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsAuthenticated(true);
@@ -101,7 +101,6 @@ const Categorizer = () => {
     return () => unsubscribe(); // Clean up listener
   }, []);
 
-  // PROD : FLOW 1
   // This hook checks if the app is running in PWA mode which will allows
   // the user to scan NFC tags and store points in Firestore
   function getIsPWA() {
@@ -115,7 +114,6 @@ const Categorizer = () => {
     return false;
   }
 
-  // FLOW 2 
   // Generate image previews for the uploaded files
   // This maps over the files state and creates an img element for each file
   const images = files.map((file) => (
@@ -130,46 +128,154 @@ const Categorizer = () => {
     />
   ));
 
-  // DEBUF : FLOW 3
-  // This function create a dummy simulation of classification of an item and stores points in Firestore
-  // It sets the buttonClicked state to true, which triggers the change of layout
-  // if user is authenticated, it will call the point function with the user's UID, item type, and points.
-  // to store the record of pending points in Firestore.
-  const dummyButtonClick = () => {
+  // Function to send the image file to the backend for classification
+  // This function creates a FormData object, appends the file to it, and sends it to the backend API
+  async function sendImageToBackend(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    return data;
+  }
+
+  // Function to handle the classification of the image
+  // This function is called when the user clicks the "Classify Trash" button
+  // It checks if there are any files uploaded, then sets necessary states for loading and error handling
+  // It sends the image to the backend for classification and updates the prediction state with the result
+  // If there is an error during the classification, it sets the error state
+  // If the result contains predictions, it calls getPredictionSummary to process the result
+  const handleClassify = async () => {
+    if (!files.length) {
+      setError('Please upload an image first.');
+      return;
+    }
     setButtonClicked(true);
-    let points = 0; // Initialize points variable
-    let itemtype = ""; // Initialize item type variable
+    setOnLoader(true);
+    setError(null);
+    setPrediction(null);
+    try {
+      const result = await sendImageToBackend(files[0]);
+
+      // Check if the result contains predictions
+      if (result && result.predictions && result.predictions.length > 0) {
+        setHavePrediction(true);
+        getPredictionSummary(result); // Call function to get prediction summary
+      } else {
+        setHavePrediction(false);
+        setError('No Trash Detected');
+      }
+    } catch (err) {
+      setError('Failed to classify image.');
+      console.error('Error classifying image:', err);
+    } finally {
+      setOnLoader(false);
+    }
+  };
+
+  // This function processes the classification raw result to get more user-friendly
+  // information about the prediction, such as item type, instructions, and confidence level
+  // It sets the item type based on the best prediction and provides instructions for disposal
+  // Once set, it will send itemType to setPendingPoint function to store the points in Firestore
+  const getPredictionSummary = (result) => {
+
+    // Set all possible prediction keywords for each item type (Lowercase)
+    const paperKeywords = [
+      "paper",
+      "carton"
+    ];
+    const plasticKeywords = [
+      "plastic bag - wrapper",
+      "plastic container",
+      "straw",
+      "styrofoam piece",
+      "other plastic",
+      "lid",
+      "cup",
+      "bottle cap",
+      "bottle"
+    ];
+    const metalGlassKeywords = [
+      "aluminium foil",
+      "broken glass",
+      "can",
+      "pop tab"
+    ];
+    const trashKeywords = [
+      "cigarette",
+      "other litter",
+      "unlabeled litter"
+    ]
+
+    const bestPrediction = result.predictions.reduce((a, b) =>
+      a.confidence > b.confidence ? a : b
+    );
+
+    let itemPredicted = bestPrediction.class_name.toLowerCase();
+    let itemType = "";
+
+    if (paperKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Paper";
+      setInstructions(
+        <>Keep it dry and clean. Try to fold or stack it. Please throw it into our <b>blue recycling bin</b>.</>
+      );
+    }
+    else if (plasticKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Plastic";
+      setInstructions(
+        <>Rinse it out and remove any labels. Flatten if possible. Please throw it into our <b>green recycling bin</b>.</>
+      );
+    }
+    else if (metalGlassKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Metal or glass";
+      setInstructions(
+        <>Rinse it out and remove any labels. Flatten if possible. Please throw it into our <b>yellow recycling bin</b>.</>
+      );
+    }
+    else if (trashKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Trash";
+      setInstructions("Please throw it into our black trash bin.");
+    }
+
+    setItemType(itemType); // Set the item type based on the best prediction
+    setPrediction(bestPrediction.class_name); // Set the best prediction
+    setConfidence((bestPrediction.confidence * 100).toFixed(1)); // Set the confidence level
+    setPendingPoint(itemType); // Call function to set pending point
+  }
+
+  // Function to set pending points based on the item scanned
+  // This function is called after the item type is determined
+  // It checks if the user is authenticated and assigns points based on the item type
+  // It then calls the storePoints function to store pending points in Firestore
+  const setPendingPoint = async (itemScanned) => {
+    let points = 0;
 
     if (isAuthenticated) {
-      //PROD : manually set the item type as plastic
-      const itemScanned = "plastic";
 
-      //PROD : Set points based on item type
-      if (itemScanned == "trash") {
+      // Assign points based on the item type scanned
+      if (itemScanned == "Trash") {
         points = typeTrash;
-      } else if (itemScanned == "paper") {
+      } else if (itemScanned == "Paper") {
         points = typePaper;
-      } else if (itemScanned == "plastic") {
+      } else if (itemScanned == "Plastic") {
         points = typePlastic;
-      } else if (itemScanned == "metal" || itemScanned == "glass") {
+      } else if (itemScanned == "Metal or glass") {
         points = typeMetalGlass;
       } else {
         points = 0;
         console.error("Unknown item type scanned:", itemScanned); //DEBUG: Log unknown item type
       }
 
-      //PROD : Set user UID
       const user = auth.currentUser;
-      const uid = user ? user.uid : null; // Get the authenticated user's UID
+      const uid = user ? user.uid : null;
 
-      //PROD : Set item type scanned
-      itemtype = itemScanned;
-
-      storePoints(uid, itemtype, points);
+      storePoints(uid, itemScanned, points); // Store points in Firestore
     }
   }
 
-  // PROD : FLOW 4
   // Function to store pending points in Firestore Firebase
   // This function can only available for PWA and auth user
   // It will invoke once via callback from dummyButtonClick() 
@@ -179,7 +285,7 @@ const Categorizer = () => {
   const storePoints = async (uid, itemtype, points) => {
 
     try {
-      let user = auth.currentUser; 
+      let user = auth.currentUser;
       const username = user && user.displayName ? user.displayName : "user";
       const now = Timestamp.now();
       const expiresAt = Timestamp.fromMillis(now.toMillis() + 3 * 60 * 60 * 1000); // 3 hours expiration time
@@ -203,7 +309,6 @@ const Categorizer = () => {
     }
   };
 
-  // PROD : FLOW 4
   //To have this function active, the user must be authenticated and the app must be running in PWA mode
   // This function is triggered when the user clicks the "Scan for rewards" button
   //it well set the showNfcOverlay state to true, indicating that the NFC scan is ready
@@ -274,7 +379,6 @@ const Categorizer = () => {
     }
   };
 
-  // PROD : FLOW 5
   // This function is called from handleNFCScan after a successful NFC scan
   // Then it will call the Firebase function "verifyScan" with the tagUID and binID as parameters
   // The function will verify the scan and update the user's points in Firestore
@@ -336,44 +440,29 @@ const Categorizer = () => {
     }
   };
 
-  // Example function to call Flask API
-  async function sendImageToBackend(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await response.json();
-    return data;
-  }
-
-  // Function to handle image classification
-  const handleClassify = async () => {
-    if (!files.length) {
-      setError('Please upload an image first.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setPrediction(null);
-    try {
-      const result = await sendImageToBackend(files[0]);
-      setPrediction(result);
-    } catch (err) {
-      setError('Failed to classify image.');
-    } finally {
-      setLoading(false);
-    }
+  // Utility function to capitalize the first letter of a string
+  const capitalizeWords = (str) => {
+    if (!str) return "";
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
-  // Add this function inside your Categorizer component
-  const handleClear = () => {
-    setFiles([]);
-    setHasImage(false);
-    setPrediction(null);
-    setError(null);
+  // Utility function to get the badge class based on the item type
+  const getBadgeClass = (itemType) => {
+    switch (itemType) {
+      case "Paper":
+        return "text-bg-info"; // green
+      case "Plastic":
+        return "text-bg-success"; // yellow
+      case "Metal or glass":
+        return "text-bg-warning"; // blue
+      case "Trash":
+        return "text-bg-dark"; // black/gray
+      default:
+        return "text-bg-secondary"; // default gray
+    }
   };
 
   return (
@@ -507,11 +596,11 @@ const Categorizer = () => {
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                        onClick={dummyButtonClick} // DEBUG: Simulate classification
+                        onClick={handleClassify} // DEBUG: Simulate classification
                       >
                         <i className="bi bi-lightbulb-fill me-2"></i>Classify Trash
                       </button>
-                       <button
+                      <button
                         className="btn btn-lg rounded-4 mb-3 shadow fw-bold text-center responsive-font"
                         id="btn-2"
                         type="button"
@@ -537,57 +626,83 @@ const Categorizer = () => {
         <>
           {/* Displayed layout after user click "Classify Image" */}
           <Navbar />
-          <div className="container-fluid">
-            <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
-              <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
-                <div className="main-section container">
-                  <div className="result-card">
-                    <img
-                      src={files[0].preview} />
-                    <div className="text-block">
-                      <p className="fw-bold empty fs-2 mb-2">Plastic Bag (Plastic)</p>
-                      <p className="text-muted lh-sm mb-2">Please rinse and throw it in our blue recycle bin</p>
-                      <p className="text-muted lh-sm">
-                        Almost there!
-                        <br />
-                        Install our app and dispose of your waste properly to start earning rewards.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-5 pt-3 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 text-center">
-                    <button
-                      className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
-                      type="button"
-                      style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                      onClick={() => window.location.reload()}
-                    >
-                      <i className="bi bi-lightbulb-fill me-2"></i> Classify More
-                    </button>
 
-                    {isPWA && (
+          {onLoader ? (
+            <div className="d-flex justify-content-center align-items-center flex-column" style={{ minHeight: '90vh' }}>
+              <div className="dots-spinner">
+                <span className="dot-1"></span>
+                <span className="dot-2"></span>
+                <span className="dot-3"></span>
+              </div>
+              <div className="loading-text pt-3" aria-live="polite">
+                Classifying<span id="dot-loader">.</span>
+              </div>
+            </div>
+
+          ) : (
+            <div className="container-fluid">
+              <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
+                <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
+                  <div className="main-section container">
+                    <div className="result-card">
+                      <img
+                        src={files[0].preview} />
+                      <div className="text-block">
+                        {havePrediction && (
+                          <div className="text-block">
+                            <p className='fw-bold empty fs-2'>{itemType}</p>
+                            <p className="fw-semibold empty fs-2">{capitalizeWords(prediction)}</p>
+                            <p className="text-muted fw-medium lh-sm">Confidence Level {confidence}%</p>
+                            <span className={`badge ${getBadgeClass(itemType)} mb-4`}>{itemType}</span>
+                            <p className="text-muted lh-sm mb-2">{instructions}</p>
+                            <p className="text-muted lh-sm">
+                              Almost there!
+                              <br />
+                              Install our app and dispose of your waste properly to start earning rewards.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {error && (
+                      <p className="text-muted fw-semibold fs-4 lh-sm mb-2 mt-5">No Trash Detected</p>
+                    )}
+                    <div className="mt-3 pt-3 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 text-center">
                       <button
                         className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                        onClick={handleNFCScan}
+                        onClick={() => window.location.reload()}
                       >
-                        <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
+                        <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                       </button>
-                    )}
-                  </div>
 
-                </div>
-                {!isPWA && (
-                  <div className="mt-auto text-center px-8 pb-3">
-                    <p className="fw-semibold empty text-muted">
-                      Install our app to get rewarded each time you scan and throw it correctly.
-                      {successfull && <span className="text-success">{successfull}</span>}
-                    </p>
+                      {isPWA && (
+                        <button
+                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
+                          type="button"
+                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                          onClick={handleNFCScan}
+                        >
+                          <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
+                        </button>
+                      )}
+                    </div>
+
                   </div>
-                )}
+                  {!isPWA && (
+                    <div className="mt-auto text-center px-8 pb-3">
+                      <p className="fw-semibold empty text-muted">
+                        Install our app to get rewarded each time you scan and throw it correctly.
+                        {successfull && <span className="text-success">{successfull}</span>}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
         </>
       )}
 

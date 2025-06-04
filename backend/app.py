@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from ultralytics import YOLO  # For YOLOv8; use torch.hub for YOLOv5
 from PIL import Image
@@ -13,6 +13,7 @@ model = YOLO('best.pt')  # Replace with your trained model path
 
 @app.after_request
 def add_cors_headers(response):
+    response = make_response()
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
