@@ -582,7 +582,6 @@ const Categorizer = () => {
                         <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
                           <img
                             src={files[0].preview}
-                            alt="Plastic Bag"
                             className="rounded-3 mb-3"
                             style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }}
                           />
@@ -613,11 +612,13 @@ const Categorizer = () => {
 
                   </>
                 )}
-                <div className="mt-auto text-center px-4 pb-3">
-                  <p className="fw-medium empty text-muted">
-                    Install our app to get rewarded each time you scan and throw it correctly.
-                  </p>
-                </div>
+                {!isPWA && (
+                  <div className="mt-auto text-center px-4 pb-3">
+                    <p className="fw-medium empty text-muted">
+                      Install our app to get rewarded each time you scan and throw it correctly.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -645,8 +646,17 @@ const Categorizer = () => {
                 <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
                   <div className="main-section container">
                     <div className="result-card">
-                      <img
-                        src={files[0].preview} />
+                      <div className="d-flex justify-content-center mb-2">
+                        <div className="card border-0" style={{ height: '30vh' }}>
+                          <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                            <img
+                              src={files[0].preview}
+                              className="rounded-3 mb-1"
+                              style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
                       <div className="text-block">
                         {havePrediction && (
                           <div className="text-block">
@@ -665,11 +675,14 @@ const Categorizer = () => {
                       </div>
                     </div>
                     {error && (
-                      <p className="text-muted fw-semibold fs-4 lh-sm mb-2 mt-5">No Trash Detected</p>
+                      <>
+                        <p className="text-semibold fw-semibold fs-2 lh-sm my-1">No Trash Detected</p>
+                        <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
+                      </>
                     )}
                     <div className="mt-3 pt-3 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 text-center">
                       <button
-                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
+                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
                         onClick={() => window.location.reload()}
@@ -677,7 +690,7 @@ const Categorizer = () => {
                         <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                       </button>
 
-                      {isPWA && (
+                      {isPWA && error !== "No Trash Detected" && (
                         <button
                           className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
                           type="button"
@@ -702,10 +715,8 @@ const Categorizer = () => {
               </div>
             </div>
           )}
-
         </>
       )}
-
     </>
   );
 };
