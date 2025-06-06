@@ -7,6 +7,7 @@ import { getApp } from 'firebase/app';
 import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import "./responsive.css";
+import heic2any from "heic2any";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -29,6 +30,8 @@ const Categorizer = () => {
   const [onLoader, setOnLoader] = useState(false);
   const [itemType, setItemType] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [uploadLoaderActive, setUploadLoaderActive] = useState(false);
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -42,18 +45,57 @@ const Categorizer = () => {
   // handle drag and drop functionality using react-dropzone
   // This allows users to drop images into the designated area
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png'],
-    },
     noClick: true, // Disable default click behavior
-    onDrop: (acceptedFiles) => {
-      const updatedFiles = acceptedFiles.map((file) =>
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
+    onDrop: async (acceptedFiles) => {
+      setUploadLoaderActive(true);
+      const processedFiles = await Promise.all(
+        acceptedFiles.map(async (file) => {
+
+          // If it's a valid image file (jpeg/png/webp)
+          if (file.type.startsWith('image/') && file.type !== 'image/heic') {
+            return Object.assign(file, {
+              preview: URL.createObjectURL(file),
+            });
+          }
+
+          // If it's a .heic file
+          if (file.type === 'image/heic' || file.name.endsWith('.heic')) {
+            try {
+              const convertedBlob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.8,
+              });
+
+              return Object.assign(convertedBlob, {
+                preview: URL.createObjectURL(convertedBlob),
+                name: file.name.replace(/\.heic$/, '.jpg'),
+              });
+            } catch (err) {
+              console.error("Failed to convert HEIC", err);
+              setUploadError('Failed to convert HEIC image. Please upload a different format.');
+              return null; // Skip file
+            }
+          }
+
+          // Not an image
+          return null;
         })
       );
-      setFiles(updatedFiles);
-      setHasImage(updatedFiles.length > 0);
+
+      // Filter out nulls (failed conversions or invalid files)
+      const validFiles = processedFiles.filter(Boolean);
+
+      if (validFiles.length === 0) {
+        setUploadError('Only valid image files (JPG, PNG, HEIC) are allowed.');
+        setFiles([]);
+        setHasImage(false);
+      } else {
+        setFiles(validFiles);
+        setHasImage(true);
+        setUploadError('');
+      }
+      setUploadLoaderActive(false);
     },
   });
 
@@ -465,6 +507,25 @@ const Categorizer = () => {
     }
   };
 
+  const convertHEIC = async (file) => {
+    try {
+      const outputBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.8
+      });
+
+      const preview = URL.createObjectURL(outputBlob);
+      return Object.assign(outputBlob, {
+        preview,
+        name: file.name.replace(/\.heic$/, '.jpg'),
+      });
+    } catch (e) {
+      console.error("HEIC conversion failed", e);
+      return null;
+    }
+  };
+
   return (
     <>
       {showNfcOverlay && (
@@ -492,7 +553,8 @@ const Categorizer = () => {
       {!buttonClicked ? (
         <div {...getRootProps()} style={{ position: 'relative' }}> {/* Main container with drag-and-drop functionality */}
           <Navbar />
-          <input {...getInputProps()} />
+          <input
+            {...getInputProps()} />
           <div className="container-fluid">
             {/* Full-Screen Overlay */}
             {isDragActive && (
@@ -519,61 +581,68 @@ const Categorizer = () => {
             <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
               {/* Page 1 */}
               <div className="d-flex flex-column flex-grow-1 pt-5" id="page-1">
-                <p className="fw-bold empty fs-2 text-center">What Kind of Trash Is This</p>
-                <p className="fw-semibold empty text-muted text-center lh-sm">
-                  Not sure what kind of trash you have? Upload picture
-                </p>
+                <p className="fw-bold empty fs-2 text-center">What Type of Waste Is This?</p>
                 <p className="fw-semibold empty text-muted text-center lh-sm mb-5">
-                  and let us figure it out for you.
+                  Not sure how to dispose of it? Upload a picture and we&#39;ll help you out.
                 </p>
                 {/* Conditionally render elements */}
                 {!hasImage ? (
                   <>
-                    <div className="d-flex justify-content-center mb-5">
-                      <div
-                        className="card border-0 rounded-4 shadow resizeCard"
-                        style={{ height: '30vh' }}
-                      >
-                        <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                          <button
-                            className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold responsive-font"
-                            id="btn-1"
-                            type="button"
-                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                            onClick={open} // Manually trigger file input
-                          >
-                            <i className="bi bi-upload me-3"></i>Upload Image
-                          </button>
-                          <p className="fw-medium empty fs-7 text-muted lh-sm">or drop a file here</p>
-                          <p className="fw-medium empty fs-7 text-muted lh-sm">CTRL + V to paste an image</p>
+                    {uploadLoaderActive ? (
+                      <div className="d-flex text-center justify-content-center align-items-center pt-6 mb-2 mb-md-0 me-md-3">
+                        <div className="uploadLoader">
+                          <span className="dotsElement"></span>
+                          <span className="dotsElement "></span>
+                          <span className="dotsElement"></span>
                         </div>
                       </div>
-                    </div>
-                    <div>{images}</div>
-                    <div className="d-flex flex-column flex-md-row justify-content-center align-items-center mb-7 text-center gap-2">
-                      <div className="mb-2 mb-md-0 me-md-3">
-                        <p className="fw-medium text-muted mb-1">No image?</p>
-                        <p className="fw-medium text-muted mb-0">Try one of these images</p>
-                      </div>
-
-                      <div className="d-flex flex-wrap justify-content-center gap-2">
-                        <img
-                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                          className="rounded-3"
-                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                        />
-                        <img
-                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                          className="rounded-3"
-                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                        />
-                        <img
-                          src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                          className="rounded-3"
-                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                        />
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="d-flex justify-content-center mb-5">
+                          <div
+                            className="card border-0 rounded-4 shadow resizeCard"
+                            style={{ height: '30vh' }}>
+                            <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                              <button
+                                className="btn btn-lg rounded-4 col-8 mb-4 shadow fw-bold responsive-font"
+                                id="btn-1"
+                                type="button"
+                                style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                                onClick={open}>
+                                <i className="bi bi-upload me-3"></i>Upload Image
+                              </button>
+                              <p className="fw-medium empty fs-7 text-muted lh-sm">or drop a file here</p>
+                              <p className="fw-medium empty fs-7 text-muted lh-sm">CTRL + V to paste an image</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex justify-content-center text-danger">
+                          <p className="fw-semibold empty fs-6 lh-sm mb-3">
+                            {uploadError}
+                          </p>
+                        </div>
+                        <div className="d-flex flex-column flex-md-row justify-content-center align-items-center mb-7 text-center gap-2">
+                          <div className="mb-2 mb-md-0 me-md-3">
+                            <p className="fw-medium text-muted mb-1">No image?</p>
+                            <p className="fw-medium text-muted mb-0">Try one of these images</p>
+                          </div>
+                          <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                            <img
+                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                              className="rounded-3"
+                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                            <img
+                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                              className="rounded-3"
+                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                            <img
+                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
+                              className="rounded-3"
+                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
@@ -604,7 +673,7 @@ const Categorizer = () => {
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#c9665f', color: '#fff' }}
-                        onClick={() => window.location.reload()} // DEBUG: Simulate classification
+                        onClick={() => window.location.reload()}
                       >
                         <i className="bi bi-file-earmark-x me-2"></i>Remove Image
                       </button>
@@ -627,7 +696,6 @@ const Categorizer = () => {
         <>
           {/* Displayed layout after user click "Classify Image" */}
           <Navbar />
-
           {onLoader ? (
             <div className="d-flex justify-content-center align-items-center flex-column" style={{ minHeight: '90vh' }}>
               <div className="dots-spinner">
@@ -639,13 +707,12 @@ const Categorizer = () => {
                 Classifying<span id="dot-loader">.</span>
               </div>
             </div>
-
           ) : (
             <div className="container-fluid">
               <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
                 <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
                   <div className="main-section container">
-                    <div className="result-card">
+                    <div className="result-card d-flex flex-column align-items-center justify-content-center">
                       <div className="d-flex justify-content-center mb-2">
                         <div className="card border-0" style={{ height: '30vh' }}>
                           <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
@@ -690,13 +757,12 @@ const Categorizer = () => {
                         <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                       </button>
 
-                      {isPWA && error !== "No Trash Detected" && (
+                      {isPWA && error !== "No Trash Detected" && isAuthenticated &&(
                         <button
-                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap"
+                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
                           type="button"
                           style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                          onClick={handleNFCScan}
-                        >
+                          onClick={handleNFCScan}>
                           <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
                         </button>
                       )}
