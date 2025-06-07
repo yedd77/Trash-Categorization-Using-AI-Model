@@ -16,10 +16,12 @@
     "firebase-admin": "^13.3.0",
     "firebase-functions": "^6.3.2",
     "heic2any": "^0.0.4",
+    "html5-qrcode": "^2.3.8",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
+    "react-qr-barcode-scanner": "^2.1.6",
     "react-router-dom": "^7.5.0"
   },
   "devDependencies": {

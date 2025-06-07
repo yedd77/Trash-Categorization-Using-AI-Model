@@ -8,6 +8,7 @@ import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, upd
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import "./responsive.css";
 import heic2any from "heic2any";
+import QRScanner from '../Components/QRScanner.jsx';
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -32,6 +33,7 @@ const Categorizer = () => {
   const [instructions, setInstructions] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [uploadLoaderActive, setUploadLoaderActive] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -507,6 +509,7 @@ const Categorizer = () => {
     }
   };
 
+  // Utility function to covert HEIC files to JPEG
   const convertHEIC = async (file) => {
     try {
       const outputBlob = await heic2any({
@@ -525,6 +528,25 @@ const Categorizer = () => {
       return null;
     }
   };
+
+  const handleQRScan = () => {
+    setShowQRScanner(true); // Show QR Scanner
+  }
+
+  const handleScanResult = (data) => {
+    console.log("Scanned QR Code:", data);
+    // Handle scanned data
+  };
+
+  // Utility constant to determine the footer content based on PWA and authentication status
+  let footerContent;
+  if (!isPWA) {
+    footerContent = "Install our app and sign up to get rewarded each time you scan and throw it correctly.";
+  } else if (!isAuthenticated) {
+    footerContent = "Almost there! Sign up to start earning rewards for your waste disposal.";
+  } else {
+    footerContent = "";
+  }
 
   return (
     <>
@@ -547,6 +569,13 @@ const Categorizer = () => {
           <div>
             Please scan your NFC tag now...
           </div>
+        </div>
+      )}
+      {showQRScanner && (
+        <div className="d-flex justify-content-center align-items-center flex-column min-vh-100" style={{ minHeight: '90vh' }}>
+          <QRScanner
+            onScan={handleScanResult}
+            onClose={() => setShowQRScanner(false)} />
         </div>
       )}
       {/* Main container for the categorizer page before user click "Classify" */}
@@ -579,7 +608,6 @@ const Categorizer = () => {
               </div>
             )}
             <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
-              {/* Page 1 */}
               <div className="d-flex flex-column flex-grow-1 pt-5" id="page-1">
                 <p className="fw-bold empty fs-2 text-center">What Type of Waste Is This?</p>
                 <p className="fw-semibold empty text-muted text-center lh-sm mb-5">
@@ -727,16 +755,11 @@ const Categorizer = () => {
                       <div className="text-block">
                         {havePrediction && (
                           <div className="text-block">
-                            <p className='fw-bold empty fs-2'>{itemType}</p>
-                            <p className="fw-semibold empty fs-2">{capitalizeWords(prediction)}</p>
-                            <p className="text-muted fw-medium lh-sm">Confidence Level {confidence}%</p>
-                            <span className={`badge ${getBadgeClass(itemType)} mb-4`}>{itemType}</span>
-                            <p className="text-muted lh-sm mb-2">{instructions}</p>
-                            <p className="text-muted lh-sm">
-                              Almost there!
-                              <br />
-                              Install our app and dispose of your waste properly to start earning rewards.
-                            </p>
+                            <p className="fw-semibold empty fs-2">Scanned Item: {capitalizeWords(prediction)}</p>
+                            <p className='fw-medium empty fs-2'>Category: {itemType}</p>
+                            <p className="text-muted fw-medium mb-1">Confidence Level {confidence}%</p>
+                            <span className={`badge ${getBadgeClass(itemType)} mb-2`}>{itemType} Bin</span>
+                            <p className="text-muted lh-sm mb-1">{instructions}</p>
                           </div>
                         )}
                       </div>
@@ -757,23 +780,31 @@ const Categorizer = () => {
                         <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                       </button>
 
-                      {isPWA && error !== "No Trash Detected" && isAuthenticated &&(
-                        <button
-                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                          type="button"
-                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                          onClick={handleNFCScan}>
-                          <i className="bi bi-lightbulb-fill me-2"></i> Scan for rewards
-                        </button>
-                      )}
+                      {/*{isPWA && error !== "No Trash Detected" && isAuthenticated && (*/
+                        <>
+                          <button
+                            className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                            type="button"
+                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                            onClick={handleNFCScan}>
+                            <i className="bi bi-lightbulb-fill me-2"></i> Scan NFC for rewards
+                          </button>
+                          <button
+                            className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                            type="button"
+                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                            onClick={handleQRScan}>
+                            <i className="bi bi-lightbulb-fill me-2"></i> Scan QR Code for rewards
+                          </button>
+                        </>
+                      /*)}*/}
                     </div>
-
                   </div>
                   {!isPWA && (
                     <div className="mt-auto text-center px-8 pb-3">
+                      {successfull && <span className="text-success">{successfull}</span>}
                       <p className="fw-semibold empty text-muted">
-                        Install our app to get rewarded each time you scan and throw it correctly.
-                        {successfull && <span className="text-success">{successfull}</span>}
+                        {footerContent}
                       </p>
                     </div>
                   )}
