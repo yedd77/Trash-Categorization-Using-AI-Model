@@ -18,11 +18,11 @@ const Categorizer = () => {
   // State to manage files and image presence
   const [files, setFiles] = useState([]);
   const [hasImage, setHasImage] = useState(false);
-  const [buttonClicked, setButtonClicked] = useState(false); // DEBUG: Track if button is clicked
-  const [isPWA, setIsPWA] = useState(getIsPWA()); // PROD: Check if the app is running in PWA mode
-  const [nfcError, setNfcError] = useState(""); // PROD: State to manage NFC error messages
-  const [showNfcOverlay, setShowNfcOverlay] = useState(false); // PROD: State to manage NFC overlay visibility
-  const [successfull, setSuccessfull] = useState(""); // DEBUG: State to manage successful NFC scan
+  const [buttonClicked, setButtonClicked] = useState(false);
+  const [isPWA, setIsPWA] = useState(getIsPWA());
+  const [nfcError, setNfcError] = useState("");
+  const [showNfcOverlay, setShowNfcOverlay] = useState(false);
+  const [successfull, setSuccessfull] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(null);
@@ -34,6 +34,10 @@ const Categorizer = () => {
   const [uploadError, setUploadError] = useState("");
   const [uploadLoaderActive, setUploadLoaderActive] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [isCloseBy, setIsCloseBy] = useState(false); // DEBUG
+  const [displayPoint, setDisplayPoint] = useState(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [proximity, setProximity] = useState(false); // DEBUG
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -310,9 +314,10 @@ const Categorizer = () => {
         points = typeMetalGlass;
       } else {
         points = 0;
-        console.error("Unknown item type scanned:", itemScanned); //DEBUG: Log unknown item type
+        console.error("Unknown item type scanned:", itemScanned);
       }
 
+      setDisplayPoint(points);
       const user = auth.currentUser;
       const uid = user ? user.uid : null;
 
@@ -322,7 +327,7 @@ const Categorizer = () => {
 
   // Function to store pending points in Firestore Firebase
   // This function can only available for PWA and auth user
-  // It will invoke once via callback from dummyButtonClick() 
+  // It will invoke once via callback from setPendingPoint() 
   // passing UID, itemType, and points and only be run with a successfull 
   // intended scan
   const db = getFirestore();
@@ -344,14 +349,16 @@ const Categorizer = () => {
         isClaimed: false,
         isExpired: false,
       });
-
-      console.log("Pending points stored successfully."); // DEBUG: Log success message
-
     } catch (error) {
 
-      console.error("Error storing pending points:", error); // DEBUG: Log error message
+      console.error("Error storing pending points:", error);
     }
   };
+
+  // Debug Function to simulate is user is close by NFC Tag
+  const debugProximity = (change) => {
+    console.log("Proximity Debug", change);
+  }
 
   //To have this function active, the user must be authenticated and the app must be running in PWA mode
   // This function is triggered when the user clicks the "Scan for rewards" button
@@ -391,10 +398,6 @@ const Categorizer = () => {
               const tagUID = parseURL.searchParams.get("tagUID");
               const binID = parseURL.searchParams.get("binID");
 
-              console.log("NFC Tag UID:", tagUID); // DEBUG: Log NFC tag UID
-              console.log("NFC Bin ID:", binID); // DEBUG: Log NFC bin ID
-              console.log("NFC URL Data:", urlData); // DEBUG: Log NFC URL data
-
               if (!tagUID || !binID) {
                 alert("Invalid NFC tag format.");
                 setNfcError("Invalid NFC.");
@@ -403,7 +406,7 @@ const Categorizer = () => {
 
               // Call function to verify the scan
               callVerifyScan(tagUID, binID);
-              setSuccessfull("Scan successful!"); // DEBUG: Set success message
+              setSuccessfull("Scan successful!");
             } catch (err) {
               // catch any errors in URL parsing
               setNfcError("Malformed NFC tag data.");
@@ -680,8 +683,7 @@ const Categorizer = () => {
                           <img
                             src={files[0].preview}
                             className="rounded-3 mb-3"
-                            style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }}
-                          />
+                            style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
                         </div>
                       </div>
                     </div>
@@ -692,8 +694,7 @@ const Categorizer = () => {
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                        onClick={handleClassify} // DEBUG: Simulate classification
-                      >
+                        onClick={handleClassify}>
                         <i className="bi bi-lightbulb-fill me-2"></i>Classify Trash
                       </button>
                       <button
@@ -701,12 +702,10 @@ const Categorizer = () => {
                         id="btn-2"
                         type="button"
                         style={{ backgroundColor: '#c9665f', color: '#fff' }}
-                        onClick={() => window.location.reload()}
-                      >
+                        onClick={() => window.location.reload()} >
                         <i className="bi bi-file-earmark-x me-2"></i>Remove Image
                       </button>
                     </div>
-
                   </>
                 )}
                 {!isPWA && (
@@ -740,26 +739,31 @@ const Categorizer = () => {
               <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
                 <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
                   <div className="main-section container">
-                    <div className="result-card d-flex flex-column align-items-center justify-content-center">
+                    <div className="result-card">
                       <div className="d-flex justify-content-center mb-2">
                         <div className="card border-0" style={{ height: '30vh' }}>
                           <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
                             <img
                               src={files[0].preview}
                               className="rounded-3 mb-1"
-                              style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }}
-                            />
+                              style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
                           </div>
                         </div>
                       </div>
                       <div className="text-block">
                         {havePrediction && (
                           <div className="text-block">
-                            <p className="fw-semibold empty fs-2">Scanned Item: {capitalizeWords(prediction)}</p>
-                            <p className='fw-medium empty fs-2'>Category: {itemType}</p>
-                            <p className="text-muted fw-medium mb-1">Confidence Level {confidence}%</p>
+                            <p className="fw-semibold empty fs-4">Scanned Item: {capitalizeWords(prediction)}</p>
+                            <p className='fw-medium empty fs-4'>Category: {itemType}</p>
+                            <p className="text-muted fw-medium mb-1 fs-6">Confidence Level {confidence}%</p>
                             <span className={`badge ${getBadgeClass(itemType)} mb-2`}>{itemType} Bin</span>
-                            <p className="text-muted lh-sm mb-1">{instructions}</p>
+                            <p className="text-muted lh-sm mb-3 ">{instructions}</p>
+
+                            {isCloseBy ? (
+                              <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending.  You're close to our recycling station—dispose of your trash in the correct bin to claim your points.</p>
+                            ) : (
+                              <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.</p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -770,34 +774,116 @@ const Categorizer = () => {
                         <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
                       </>
                     )}
-                    <div className="mt-3 pt-3 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 text-center">
+
+                    {/*DEBUG CODE TO CHECK IF USER IS CLOSE */}
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="radioDefault"
+                        id="radioDefault1"
+                        checked={proximity === true}
+                        onChange={() => {
+                          setIsCloseBy(true);
+                          setProximity(true);
+                          debugProximity(true);
+                        }}
+                      />
+                      <label className="form-check-label">
+                        USER IS CLOSE
+                      </label>
+                    </div>
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="radioDefault"
+                        id="radioDefault2"
+                        checked={proximity === false}
+                        onChange={() => {
+                          setIsCloseBy(false);
+                          setProximity(false);
+                          debugProximity(false);
+                        }}
+                      />
+                      <label className="form-check-label" >
+                        USER IS NOT CLOSE
+                      </label>
+                    </div>
+                    {/* END OF DEBUG CODE */}
+
+                    <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">
                       <button
-                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                        className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
                         type="button"
                         style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                        onClick={() => window.location.reload()}
-                      >
+
+                        onClick={() => window.location.reload()}>
                         <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                       </button>
+                      {isCloseBy && (
+                        <button
+                          className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
+                          type="button"
+                          style={{ color: 'rgb(128, 188, 68)', border: '2px solid rgb(128, 188, 68)', }}
+                          onClick={() => setShowVerifyModal(true)}>
+                          <i className="bi bi-patch-check me-2"></i> Verify Location
+                        </button>
+                      )}
+                      {showVerifyModal && (
+                        <div
+                          className={`modal fade show`}
+                          id="staticBackdrop"
+                          style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}
+                          tabIndex="-1"
+                          aria-labelledby="staticBackdropLabel"
+                          aria-modal="true"
+                          role="dialog" >
+                          <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                              <div className="modal-header">
+                                <h1 className="modal-title fs-5" id="staticBackdropLabel">Verify Your Location</h1>
+                                <button
+                                  type="button"
+                                  className="btn-close"
+                                  onClick={() => setShowVerifyModal(false)}
+                                  aria-label="Close"
+                                ></button>
+                              </div>
+                              <div className="modal-body">
+                                To claim your recycling points, please verify that you are near an authorized recycling station.
+                                You can do this by scanning a QR code or tapping your device on the NFC tag located at the station.
+                                <br /><br />
+                                You can also choose to claim your points later, but they will expire in 3 hours if not verified.
+                              </div>
+                              <div className="modal-footer">
+                                <button
+                                  className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                                  type="button"
+                                  style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                                  onClick={handleNFCScan}>
+                                  <i className="bi bi-lightbulb-fill me-2"></i> Verify using NFC
+                                </button>
+                                <button
+                                  className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                                  type="button"
+                                  style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                                  onClick={handleQRScan}>
+                                  <i className="bi bi-lightbulb-fill me-2"></i> Verify using QR Code
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                                  onClick={() => setShowVerifyModal(false)}>
+                                  Close
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                      {/*{isPWA && error !== "No Trash Detected" && isAuthenticated && (*/
-                        <>
-                          <button
-                            className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                            type="button"
-                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                            onClick={handleNFCScan}>
-                            <i className="bi bi-lightbulb-fill me-2"></i> Scan NFC for rewards
-                          </button>
-                          <button
-                            className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                            type="button"
-                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                            onClick={handleQRScan}>
-                            <i className="bi bi-lightbulb-fill me-2"></i> Scan QR Code for rewards
-                          </button>
-                        </>
-                      /*)}*/}
+
                     </div>
                   </div>
                   {!isPWA && (

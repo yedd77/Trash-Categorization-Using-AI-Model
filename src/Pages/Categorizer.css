@@ -230,3 +230,15 @@
     transform: scale(2);
   }
 }
+
+.btn-outline-secondary {
+  color: rgb(128, 188, 68);
+  border: 2px solid rgb(128, 188, 68);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  color: #fff !important;
+  background-color: rgb(128, 188, 68) !important;
+  border: 2px solid rgb(128, 188, 68) !important;
+}
