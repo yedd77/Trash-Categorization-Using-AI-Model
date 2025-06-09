@@ -37,6 +37,9 @@ const Categorizer = () => {
   const [isCloseBy, setIsCloseBy] = useState(false); // DEBUG
   const [displayPoint, setDisplayPoint] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showVerifyProcess, setShowVerifyProcess] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState("");
+  const [verifyDescription, setVerifyDescription] = useState("");
   const [proximity, setProximity] = useState(false); // DEBUG
 
   // Set point for each item type thrown
@@ -405,6 +408,8 @@ const Categorizer = () => {
               }
 
               // Call function to verify the scan
+              setShowNfcOverlay(false);
+              setShowVerifyModal(false);
               callVerifyScan(tagUID, binID);
               setSuccessfull("Scan successful!");
             } catch (err) {
@@ -426,6 +431,39 @@ const Categorizer = () => {
     }
   };
 
+  // This function is called when the user clicks the "Scan QR Code" button
+  // It will set the showQRScanner state to true, indicating that the QR scanner should be displayed
+  const handleQRScan = () => {
+    setShowQRScanner(true); // Show QR Scanner
+  }
+
+  // This function is called from QRScanner component after a successful QR scan
+  // It will handle the scanned QR code data, extract tagUID and binID,
+  // and then call the callVerifyScan function to verify the scan
+  const handleScanResult = (data) => {
+
+    setShowQRScanner(false); 
+    setShowVerifyModal(false); 
+    if (!data || !data.startsWith("https://bin-buddy-v1.web.app/binVerify/")) {
+      alert("Invalid QR Code. Please scan a valid Bin Buddy QR Code.");
+      return;
+    }
+
+    // Extract tagUID and binID from the scanned QR code
+    const url = new URL(data);
+    const tagUID = url.searchParams.get("tagUID");
+    const binID = url.searchParams.get("binID");
+    if (!tagUID || !binID) {
+      alert("Invalid QR Code format. Missing tagUID or binID.");
+      return;
+    }
+
+    setVerifyStatus("Verifying scan...");
+    setVerifyDescription("Please wait while we verify your scan.");
+    // Call the function to verify the scan with the extracted tagUID and binID
+    callVerifyScan(tagUID, binID);
+  };
+
   // This function is called from handleNFCScan after a successful NFC scan
   // Then it will call the Firebase function "verifyScan" with the tagUID and binID as parameters
   // The function will verify the scan and update the user's points in Firestore
@@ -434,12 +472,13 @@ const Categorizer = () => {
     const functions = getFunctions(getApp(), "us-central1");
     const verifyScan = httpsCallable(functions, "verifyScan");
 
+    setVerifyStatus("Verifying scan...");
+    setVerifyDescription("Please wait while we verify your scan.");
+
     try {
       const result = await verifyScan({ tagUID, binID });
 
       if (result.data.success) {
-        alert(result.data.message);
-
         // update record of user points in Firestore
         const db = getFirestore();
         const user = auth.currentUser;
@@ -469,8 +508,8 @@ const Categorizer = () => {
               })
             ));
           });
-
-          alert("Points claimed successfully!");
+          setVerifyStatus("Success");
+          setVerifyDescription("Scan verified successfully. Points have been credited.");
         } catch (err) {
           console.error("Error updating points:", err.message);
           alert("Error updating points: " + err.message);
@@ -532,15 +571,6 @@ const Categorizer = () => {
     }
   };
 
-  const handleQRScan = () => {
-    setShowQRScanner(true); // Show QR Scanner
-  }
-
-  const handleScanResult = (data) => {
-    console.log("Scanned QR Code:", data);
-    // Handle scanned data
-  };
-
   // Utility constant to determine the footer content based on PWA and authentication status
   let footerContent;
   if (!isPWA) {
@@ -572,13 +602,26 @@ const Categorizer = () => {
           <div>
             Please scan your NFC tag now...
           </div>
+          <div className="d-flex flex-column justify-content-center align-items-center">
+            <button
+              className="btn btn-secondary mt-3"
+              onClick={() => {
+                setShowNfcOverlay(false);
+                setVerifyStatus(false);
+              }}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
       {showQRScanner && (
         <div className="d-flex justify-content-center align-items-center flex-column min-vh-100" style={{ minHeight: '90vh' }}>
           <QRScanner
-            onScan={handleScanResult}
-            onClose={() => setShowQRScanner(false)} />
+            onSend={handleScanResult}
+            onClose={() => {
+              setShowQRScanner(false);
+              setVerifyStatus(false);
+            }} />
         </div>
       )}
       {/* Main container for the categorizer page before user click "Classify" */}
@@ -736,166 +779,197 @@ const Categorizer = () => {
             </div>
           ) : (
             <div className="container-fluid">
-              <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
-                <div className="d-flex flex-column flex-grow-1 pt-5" id="page-3">
-                  <div className="main-section container">
-                    <div className="result-card">
-                      <div className="d-flex justify-content-center mb-2">
-                        <div className="card border-0" style={{ height: '30vh' }}>
-                          <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                            <img
-                              src={files[0].preview}
-                              className="rounded-3 mb-1"
-                              style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-block">
-                        {havePrediction && (
-                          <div className="text-block">
-                            <p className="fw-semibold empty fs-4">Scanned Item: {capitalizeWords(prediction)}</p>
-                            <p className='fw-medium empty fs-4'>Category: {itemType}</p>
-                            <p className="text-muted fw-medium mb-1 fs-6">Confidence Level {confidence}%</p>
-                            <span className={`badge ${getBadgeClass(itemType)} mb-2`}>{itemType} Bin</span>
-                            <p className="text-muted lh-sm mb-3 ">{instructions}</p>
-
-                            {isCloseBy ? (
-                              <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending.  You're close to our recycling station—dispose of your trash in the correct bin to claim your points.</p>
-                            ) : (
-                              <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {error && (
-                      <>
-                        <p className="text-semibold fw-semibold fs-2 lh-sm my-1">No Trash Detected</p>
-                        <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
-                      </>
-                    )}
-
-                    {/*DEBUG CODE TO CHECK IF USER IS CLOSE */}
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="radioDefault"
-                        id="radioDefault1"
-                        checked={proximity === true}
-                        onChange={() => {
-                          setIsCloseBy(true);
-                          setProximity(true);
-                          debugProximity(true);
-                        }}
-                      />
-                      <label className="form-check-label">
-                        USER IS CLOSE
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="radioDefault"
-                        id="radioDefault2"
-                        checked={proximity === false}
-                        onChange={() => {
-                          setIsCloseBy(false);
-                          setProximity(false);
-                          debugProximity(false);
-                        }}
-                      />
-                      <label className="form-check-label" >
-                        USER IS NOT CLOSE
-                      </label>
-                    </div>
-                    {/* END OF DEBUG CODE */}
-
-                    <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">
-                      <button
-                        className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
-                        type="button"
-                        style={{ backgroundColor: '#80BC44', color: '#fff' }}
-
-                        onClick={() => window.location.reload()}>
-                        <i className="bi bi-lightbulb-fill me-2"></i> Classify More
-                      </button>
-                      {isCloseBy && (
+              {showVerifyModal && (
+                <div
+                  className={`modal fade show`}
+                  id="staticBackdrop"
+                  style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}
+                  tabIndex="-1"
+                  aria-labelledby="staticBackdropLabel"
+                  aria-modal="true"
+                  role="dialog" >
+                  <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content">
+                      <div className="modal-header">
+                        <h1 className="modal-title fs-5" id="staticBackdropLabel">Verify Your Location</h1>
                         <button
-                          className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
                           type="button"
-                          style={{ color: 'rgb(128, 188, 68)', border: '2px solid rgb(128, 188, 68)', }}
-                          onClick={() => setShowVerifyModal(true)}>
-                          <i className="bi bi-patch-check me-2"></i> Verify Location
+                          className="btn-close"
+                          onClick={() => setShowVerifyModal(false)}
+                          aria-label="Close"
+                        ></button>
+                      </div>
+                      <div className="modal-body">
+                        To claim your recycling points, please verify that you are near an authorized recycling station.
+                        You can do this by scanning a QR code or tapping your device on the NFC tag located at the station.
+                        <br /><br />
+                        You can also choose to claim your points later, but they will expire in 3 hours if not verified.
+                      </div>
+                      <div className="modal-footer">
+                        <button
+                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                          type="button"
+                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                          onClick={handleNFCScan}>
+                          <i className="bi bi-lightbulb-fill me-2"></i> Verify using NFC
+                        </button>
+                        <button
+                          className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                          type="button"
+                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
+                          onClick={handleQRScan}>
+                          <i className="bi bi-lightbulb-fill me-2"></i> Verify using QR Code
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
+                          onClick={() => {
+                            setShowVerifyModal(false);
+                            setShowVerifyProcess(false);
+                          }}>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {showVerifyProcess ? (
+                <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
+                  <div className="d-flex flex-column flex-grow-1 pt-5">
+                    <div className="main-section container">
+                      <p className="fw-semibold empty fs-3 text-center">{verifyStatus}</p>
+                      <p className="fw-normal empty text-muted text-center lh-sm mb-5">
+                        {verifyDescription}
+                      </p>
+                      { verifyStatus === "Success" && (
+                         <button
+                          className="btn rounded-4 shadow fw-semibold w-50 w-md-25 text-nowrap responsive-font"
+                          type="button"
+                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
+
+                          onClick={() => window.location.reload()}>
+                          <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                         </button>
                       )}
-                      {showVerifyModal && (
-                        <div
-                          className={`modal fade show`}
-                          id="staticBackdrop"
-                          style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}
-                          tabIndex="-1"
-                          aria-labelledby="staticBackdropLabel"
-                          aria-modal="true"
-                          role="dialog" >
-                          <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content">
-                              <div className="modal-header">
-                                <h1 className="modal-title fs-5" id="staticBackdropLabel">Verify Your Location</h1>
-                                <button
-                                  type="button"
-                                  className="btn-close"
-                                  onClick={() => setShowVerifyModal(false)}
-                                  aria-label="Close"
-                                ></button>
-                              </div>
-                              <div className="modal-body">
-                                To claim your recycling points, please verify that you are near an authorized recycling station.
-                                You can do this by scanning a QR code or tapping your device on the NFC tag located at the station.
-                                <br /><br />
-                                You can also choose to claim your points later, but they will expire in 3 hours if not verified.
-                              </div>
-                              <div className="modal-footer">
-                                <button
-                                  className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                  type="button"
-                                  style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                                  onClick={handleNFCScan}>
-                                  <i className="bi bi-lightbulb-fill me-2"></i> Verify using NFC
-                                </button>
-                                <button
-                                  className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                  type="button"
-                                  style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                                  onClick={handleQRScan}>
-                                  <i className="bi bi-lightbulb-fill me-2"></i> Verify using QR Code
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                  onClick={() => setShowVerifyModal(false)}>
-                                  Close
-                                </button>
-                              </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
+                  <div className="d-flex flex-column flex-grow-1 pt-5">
+                    <div className="main-section container">
+                      <div className="result-card">
+                        <div className="d-flex justify-content-center mb-2">
+                          <div className="card border-0" style={{ height: '30vh' }}>
+                            <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                              <img
+                                src={files[0].preview}
+                                className="rounded-3 mb-1"
+                                style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
                             </div>
                           </div>
                         </div>
+                        <div className="text-block">
+                          {havePrediction && (
+                            <div className="text-block">
+                              <p className="fw-semibold empty fs-4">Scanned Item: {capitalizeWords(prediction)}</p>
+                              <p className='fw-medium empty fs-4'>Category: {itemType}</p>
+                              <p className="text-muted fw-medium mb-1 fs-6">Confidence Level {confidence}%</p>
+                              <span className={`badge ${getBadgeClass(itemType)} mb-2`}>{itemType} Bin</span>
+                              <p className="text-muted lh-sm mb-3 ">{instructions}</p>
+
+                              {!isAuthenticated && (
+                                <p className="text-muted lh-sm mb-1">Download and use our app to get point when throwing out trash!</p>
+                              )}
+
+                              {isAuthenticated && isCloseBy ? (
+                                <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending.  You're close to our recycling station—dispose of your trash in the correct bin to claim your points.</p>
+                              ) : (
+                                <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {error && (
+                        <>
+                          <p className="text-semibold fw-semibold fs-2 lh-sm my-1">No Trash Detected</p>
+                          <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
+                        </>
                       )}
 
+                      {/*DEBUG CODE TO CHECK IF USER IS CLOSE */}
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="radioDefault"
+                          id="radioDefault1"
+                          checked={proximity === true}
+                          onChange={() => {
+                            setIsCloseBy(true);
+                            setProximity(true);
+                            debugProximity(true);
+                          }}
+                        />
+                        <label className="form-check-label">
+                          USER IS CLOSE
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="radioDefault"
+                          id="radioDefault2"
+                          checked={proximity === false}
+                          onChange={() => {
+                            setIsCloseBy(false);
+                            setProximity(false);
+                            debugProximity(false);
+                          }}
+                        />
+                        <label className="form-check-label" >
+                          USER IS NOT CLOSE
+                        </label>
+                      </div>
+                      {/* END OF DEBUG CODE */}
 
+                      <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">
+                        <button
+                          className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
+                          type="button"
+                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
+
+                          onClick={() => window.location.reload()}>
+                          <i className="bi bi-lightbulb-fill me-2"></i> Classify More
+                        </button>
+                        {isPWA && error !== "No Trash Detected" && isAuthenticated && isCloseBy && (
+                          <button
+                            className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
+                            type="button"
+                            style={{ color: 'rgb(128, 188, 68)', border: '2px solid rgb(128, 188, 68)', }}
+                            onClick={() => {
+                              setShowVerifyProcess(true);
+                              setShowVerifyModal(true);
+                            }}>
+                            <i className="bi bi-patch-check me-2"></i> Verify Location
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    {!isPWA && (
+                      <div className="mt-auto text-center px-8 pb-3">
+                        {successfull && <span className="text-success">{successfull}</span>}
+                        <p className="fw-semibold empty text-muted">
+                          {footerContent}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {!isPWA && (
-                    <div className="mt-auto text-center px-8 pb-3">
-                      {successfull && <span className="text-success">{successfull}</span>}
-                      <p className="fw-semibold empty text-muted">
-                        {footerContent}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
           )}
         </>

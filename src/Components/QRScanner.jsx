@@ -24,7 +24,7 @@ const QRScanner = ({ onClose, onSend }) => {
         height={300}
         onUpdate={handleUpdate}
       />
-      <div className="text text-white text-center px-4 z-index-10 position-fixed">
+      <div className="text-white text-center px-4 position-fixed d-flex flex-column my-5">
         <h2>Scan QR Code To Verify</h2>
         <p>Please place the QR Code within the frame to ensure greater success</p>
       </div>

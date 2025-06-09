@@ -55,3 +55,7 @@
   z-index: 3;
   font-size: 1.2rem;
 }
+
+.text-white {
+  z-index: 10;
+}
