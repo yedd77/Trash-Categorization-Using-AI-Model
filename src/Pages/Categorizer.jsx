@@ -34,13 +34,12 @@ const Categorizer = () => {
   const [uploadError, setUploadError] = useState("");
   const [uploadLoaderActive, setUploadLoaderActive] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
-  const [isCloseBy, setIsCloseBy] = useState(false); // DEBUG
   const [displayPoint, setDisplayPoint] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showVerifyProcess, setShowVerifyProcess] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState("");
   const [verifyDescription, setVerifyDescription] = useState("");
-  const [proximity, setProximity] = useState(false); // DEBUG
+
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -293,7 +292,7 @@ const Categorizer = () => {
 
     setItemType(itemType); // Set the item type based on the best prediction
     setPrediction(bestPrediction.class_name); // Set the best prediction
-    console.log(prediction)
+    console.log(bestPrediction.class_name)
     setConfidence((bestPrediction.confidence * 100).toFixed(1)); // Set the confidence level
     setPendingPoint(itemType); // Call function to set pending point
   }
@@ -358,11 +357,6 @@ const Categorizer = () => {
       console.error("Error storing pending points:", error);
     }
   };
-
-  // Debug Function to simulate is user is close by NFC Tag
-  const debugProximity = (change) => {
-    console.log("Proximity Debug", change);
-  }
 
   //To have this function active, the user must be authenticated and the app must be running in PWA mode
   // This function is triggered when the user clicks the "Scan for rewards" button
@@ -443,8 +437,8 @@ const Categorizer = () => {
   // and then call the callVerifyScan function to verify the scan
   const handleScanResult = (data) => {
 
-    setShowQRScanner(false); 
-    setShowVerifyModal(false); 
+    setShowQRScanner(false);
+    setShowVerifyModal(false);
     if (!data || !data.startsWith("https://bin-buddy-v1.web.app/binVerify/")) {
       alert("Invalid QR Code. Please scan a valid Bin Buddy QR Code.");
       return;
@@ -700,18 +694,25 @@ const Categorizer = () => {
                             <p className="fw-medium text-muted mb-0">Try one of these images</p>
                           </div>
                           <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                            <img
-                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                              className="rounded-3"
-                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
-                            <img
-                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                              className="rounded-3"
-                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
-                            <img
-                              src="https://cdn1.npcdn.net/images/1593584628fb904e0fb02092edd14651cf0f25c4a4.webp?md5id=6281642964070c8fc6df23720ee81281&new_width=1000&new_height=1000&w=1652761475&from=jpg"
-                              className="rounded-3"
-                              style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                            {["/sample1.jpg", "/sample2.jpg", "/sample3.jpg"].map((url, idx) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                className="rounded-3"
+                                style={{ width: '40px', height: '40px', objectFit: 'cover', cursor: 'pointer' }}
+                                onClick={async () => {
+                                  const url = `/sample${idx + 1}.jpg`;
+                                  const response = await fetch(url);
+                                  const blob = await response.blob();
+                                  const file = new File([blob], `sample${idx + 1}.jpg`, { type: blob.type });
+                                  file.preview = URL.createObjectURL(file);
+                                  setFiles([file]);
+                                  setHasImage(true);
+                                  setUploadError('');
+                                }}
+                                alt="sample"
+                              />
+                            ))}
                           </div>
                         </div>
                       </>
@@ -841,8 +842,8 @@ const Categorizer = () => {
                       <p className="fw-normal empty text-muted text-center lh-sm mb-5">
                         {verifyDescription}
                       </p>
-                      { verifyStatus === "Success" && (
-                         <button
+                      {verifyStatus === "Success" && (
+                        <button
                           className="btn rounded-4 shadow fw-semibold w-50 w-md-25 text-nowrap responsive-font"
                           type="button"
                           style={{ backgroundColor: '#80BC44', color: '#fff' }}
@@ -881,7 +882,7 @@ const Categorizer = () => {
                                 <p className="text-muted lh-sm mb-1">Download and use our app to get point when throwing out trash!</p>
                               )}
 
-                              {isAuthenticated && isCloseBy ? (
+                              {isAuthenticated ? (
                                 <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending.  You're close to our recycling station—dispose of your trash in the correct bin to claim your points.</p>
                               ) : (
                                 <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.</p>
@@ -896,44 +897,6 @@ const Categorizer = () => {
                           <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
                         </>
                       )}
-
-                      {/*DEBUG CODE TO CHECK IF USER IS CLOSE */}
-                      <div className="form-check">
-                        <input
-                          className="form-check-input"
-                          type="radio"
-                          name="radioDefault"
-                          id="radioDefault1"
-                          checked={proximity === true}
-                          onChange={() => {
-                            setIsCloseBy(true);
-                            setProximity(true);
-                            debugProximity(true);
-                          }}
-                        />
-                        <label className="form-check-label">
-                          USER IS CLOSE
-                        </label>
-                      </div>
-                      <div className="form-check">
-                        <input
-                          className="form-check-input"
-                          type="radio"
-                          name="radioDefault"
-                          id="radioDefault2"
-                          checked={proximity === false}
-                          onChange={() => {
-                            setIsCloseBy(false);
-                            setProximity(false);
-                            debugProximity(false);
-                          }}
-                        />
-                        <label className="form-check-label" >
-                          USER IS NOT CLOSE
-                        </label>
-                      </div>
-                      {/* END OF DEBUG CODE */}
-
                       <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">
                         <button
                           className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
@@ -943,7 +906,7 @@ const Categorizer = () => {
                           onClick={() => window.location.reload()}>
                           <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                         </button>
-                        {isPWA && error !== "No Trash Detected" && isAuthenticated && isCloseBy && (
+                        {isPWA && error !== "No Trash Detected" && isAuthenticated && (
                           <button
                             className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
                             type="button"
