@@ -207,7 +207,7 @@ const Categorizer = () => {
     setButtonClicked(true);
     setOnLoader(true);
     setError(null);
-    setPrediction(null);
+
     try {
       const result = await sendImageToBackend(files[0]);
 
@@ -293,6 +293,7 @@ const Categorizer = () => {
 
     setItemType(itemType); // Set the item type based on the best prediction
     setPrediction(bestPrediction.class_name); // Set the best prediction
+    console.log(prediction)
     setConfidence((bestPrediction.confidence * 100).toFixed(1)); // Set the confidence level
     setPendingPoint(itemType); // Call function to set pending point
   }
@@ -458,8 +459,6 @@ const Categorizer = () => {
       return;
     }
 
-    setVerifyStatus("Verifying scan...");
-    setVerifyDescription("Please wait while we verify your scan.");
     // Call the function to verify the scan with the extracted tagUID and binID
     callVerifyScan(tagUID, binID);
   };
@@ -472,7 +471,7 @@ const Categorizer = () => {
     const functions = getFunctions(getApp(), "us-central1");
     const verifyScan = httpsCallable(functions, "verifyScan");
 
-    setVerifyStatus("Verifying scan...");
+    setVerifyStatus("Pending");
     setVerifyDescription("Please wait while we verify your scan.");
 
     try {
@@ -647,7 +646,7 @@ const Categorizer = () => {
                   alignItems: 'center',
                   color: 'white',
                   fontSize: '24px',
-                  fontWeight: 'bold',
+                  fontWeight: 'bold'
                 }}
               >
                 Drop image everywhere
@@ -873,8 +872,7 @@ const Categorizer = () => {
                         <div className="text-block">
                           {havePrediction && (
                             <div className="text-block">
-                              <p className="fw-semibold empty fs-4">Scanned Item: {capitalizeWords(prediction)}</p>
-                              <p className='fw-medium empty fs-4'>Category: {itemType}</p>
+                              <p className='fw-semibold empty fs-4'>Category: {itemType}</p>
                               <p className="text-muted fw-medium mb-1 fs-6">Confidence Level {confidence}%</p>
                               <span className={`badge ${getBadgeClass(itemType)} mb-2`}>{itemType} Bin</span>
                               <p className="text-muted lh-sm mb-3 ">{instructions}</p>
