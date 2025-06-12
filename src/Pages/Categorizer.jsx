@@ -4,12 +4,12 @@ import { useDropzone } from 'react-dropzone';
 import './Categorizer.css';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from 'firebase/app';
-import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import "./responsive.css";
 import heic2any from "heic2any";
 import QRScanner from '../Components/QRScanner.jsx';
-
+import blockhash from 'blockhash-core';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -39,7 +39,7 @@ const Categorizer = () => {
   const [showVerifyProcess, setShowVerifyProcess] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState("");
   const [verifyDescription, setVerifyDescription] = useState("");
-
+  const [hashExist, setHashExist] = useState(false);
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -50,6 +50,7 @@ const Categorizer = () => {
   // Set up Firebase functions and Firestore
   const auth = getAuth();
 
+  // Upload method : Drag and Drop 1
   // handle drag and drop functionality using react-dropzone
   // This allows users to drop images into the designated area
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -61,11 +62,19 @@ const Categorizer = () => {
 
           // If it's a valid image file (jpeg/png/webp)
           if (file.type.startsWith('image/') && file.type !== 'image/heic') {
-            return Object.assign(file, {
-              preview: URL.createObjectURL(file),
-            });
-          }
+            const preview = URL.createObjectURL(file);
 
+            try {
+              const hash = await getImageHash(file);
+              console.log("Image Hash:", hash);
+              checkAndStoreHash(hash);
+              return Object.assign(file, { preview, hash });
+            } catch (error) {
+              console.error("Error generating image hash:", error);
+              setUploadError('Failed to generate image hash. Please try again.');
+              return null; // Skip file if hash generation fails
+            }
+          }
           // If it's a .heic file
           if (file.type === 'image/heic' || file.name.endsWith('.heic')) {
             try {
@@ -75,6 +84,10 @@ const Categorizer = () => {
                 quality: 0.8,
               });
 
+              const preview = URL.createObjectURL(convertedBlob);
+              const hash = await getImageHash(convertedBlob);
+              console.log("Converted HEIC Image Hash:", hash);
+              checkAndStoreHash(hash);
               return Object.assign(convertedBlob, {
                 preview: URL.createObjectURL(convertedBlob),
                 name: file.name.replace(/\.heic$/, '.jpg'),
@@ -85,7 +98,6 @@ const Categorizer = () => {
               return null; // Skip file
             }
           }
-
           // Not an image
           return null;
         })
@@ -121,6 +133,8 @@ const Categorizer = () => {
           if (file) {
             const preview = URL.createObjectURL(file);
             const newFile = Object.assign(file, { preview });
+            const hash = getImageHash(file);
+            checkAndStoreHash(hash);
 
             setFiles((prevFiles) => [...prevFiles, newFile]);
             setHasImage(true);
@@ -177,6 +191,40 @@ const Categorizer = () => {
       }}
     />
   ));
+
+  async function getImageHash(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 128;
+        canvas.height = 128;
+        ctx.drawImage(img, 0, 0, 128, 128);
+        const imageData = ctx.getImageData(0, 0, 128, 128);
+        const hash = blockhash.bmvbhash(imageData, 16);
+        resolve(hash);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function checkAndStoreHash(hash) {
+    const db = getFirestore();
+    const hashRef = doc(db, 'hashes', hash);
+    const snapshot = await getDoc(hashRef);
+
+    if (snapshot.exists()) {
+      console.log("Hash already exists in Firestore:");
+      setHashExist(true);
+    } else {
+      await setDoc(hashRef, {
+        createdAt: serverTimestamp()
+      });
+      setHashExist(false);
+    }
+  }
 
   // Function to send the image file to the backend for classification
   // This function creates a FormData object, appends the file to it, and sends it to the backend API
@@ -304,8 +352,7 @@ const Categorizer = () => {
   const setPendingPoint = async (itemScanned) => {
     let points = 0;
 
-    if (isAuthenticated) {
-
+    if (isAuthenticated && !hashExist) {
       // Assign points based on the item type scanned
       if (itemScanned == "Trash") {
         points = typeTrash;
@@ -705,6 +752,9 @@ const Categorizer = () => {
                                   const response = await fetch(url);
                                   const blob = await response.blob();
                                   const file = new File([blob], `sample${idx + 1}.jpg`, { type: blob.type });
+                                  const hash = await getImageHash(file);
+                                  checkAndStoreHash(hash);
+                                  console.log("Sample Image Hash:", hash);
                                   file.preview = URL.createObjectURL(file);
                                   setFiles([file]);
                                   setHasImage(true);
@@ -882,11 +932,15 @@ const Categorizer = () => {
                                 <p className="text-muted lh-sm mb-1">Download and use our app to get point when throwing out trash!</p>
                               )}
 
-                              {isAuthenticated ? (
-                                <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending.  You're close to our recycling station—dispose of your trash in the correct bin to claim your points.</p>
-                              ) : (
-                                <p className="text-muted lh-sm mb-1">You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.</p>
-                              )}
+                              {hashExist && isAuthenticated ? (
+                                <p className="text-muted lh-sm mb-1">
+                                  This image has already been scanned and rewarded before. Please try another image to earn points.
+                                </p>
+                              ) : !hashExist && isAuthenticated ? (
+                                <p className="text-muted lh-sm mb-1">
+                                  You have earned {displayPoint} points, which are currently pending. Visit a nearby recycling station and dispose of your trash in the correct bin to claim your points.
+                                </p>
+                              ) : null}
                             </div>
                           )}
                         </div>
@@ -906,7 +960,7 @@ const Categorizer = () => {
                           onClick={() => window.location.reload()}>
                           <i className="bi bi-lightbulb-fill me-2"></i> Classify More
                         </button>
-                        {isPWA && error !== "No Trash Detected" && isAuthenticated && (
+                        {isPWA && error !== "No Trash Detected" && isAuthenticated && !hashExist && (
                           <button
                             className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
                             type="button"
