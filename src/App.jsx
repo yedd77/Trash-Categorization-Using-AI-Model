@@ -18,10 +18,8 @@ import { getDoc } from 'firebase/firestore'
 import Station from './Pages/Admin/Station'
 import AddStation from './Pages/Admin/AddStation'
 import Users from './Pages/Admin/Users'
-import Reward from './Pages/Admin/Reward'
+import Leaderboard from './Pages/Admin/Leaderboard'
 import Point from './Pages/Admin/Point'
-
-import Test from './Pages/test' //DEBUG 
 
 
 function App() {
@@ -36,7 +34,6 @@ function App() {
         <Route path="/ourApp" element={<OurApp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPass />} />
-        <Route path="/test" element={<Test />} /> {/* DEBUG */}
 
 
         {/* Admin Route */}
@@ -68,10 +65,10 @@ function App() {
           </AdminRoute>
         } 
         />
-        <Route path="/admin/dashboard/reward" 
+        <Route path="/admin/dashboard/leaderboard" 
         element={
           <AdminRoute>
-            <Reward />
+            <Leaderboard />
           </AdminRoute>
         } 
         />

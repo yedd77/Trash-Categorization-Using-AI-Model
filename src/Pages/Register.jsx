@@ -26,7 +26,7 @@ const Register = () => {
   const handleSignup = async () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     // At least 6 characters, at least one letter and one number capital and lowercase
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#$%^&+=!]{6,}$/;
    
     if (password !== confirmPassword) {
       setError("Passwords do not match!");

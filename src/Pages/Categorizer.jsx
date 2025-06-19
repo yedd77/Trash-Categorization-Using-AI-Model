@@ -845,7 +845,10 @@ const Categorizer = () => {
                         <button
                           type="button"
                           className="btn-close"
-                          onClick={() => setShowVerifyModal(false)}
+                          onClick={() => {
+                            setShowVerifyModal(false);
+                            setShowVerifyProcess(false);
+                          }}
                           aria-label="Close"
                         ></button>
                       </div>

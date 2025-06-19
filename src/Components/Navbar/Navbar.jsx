@@ -18,7 +18,7 @@ const Navbar = () => {
   const [isPWA, setIsPWA] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isNavCollapsed, setIsNavCollapsed] = useState(true); // 🆕
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
   useEffect(() => {
     setIsPWA(getIsPWA());
@@ -41,9 +41,7 @@ const Navbar = () => {
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
-      <a className="navbar-brand" href="#">
-        <img src="/icons/icon-long.png" alt="Logo" height="40" />
-      </a> 
+      <Link to="/" className="navbar-brand" onClick={closeNavbar}><img src="/icons/icon-long.png" alt="Logo" height="40" /></Link>
 
       <button
         className="navbar-toggler"
@@ -70,20 +68,25 @@ const Navbar = () => {
             </li>
           )}
           <li className="nav-item">
+            
             <Link to="/categorizer" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Try us</Link>
           </li>
-        </ul>
+        
         {!loading && (
           user ? (
-            <Link to="/profile" className="btn btn-profile text-decoration-none" onClick={closeNavbar}>
-              {user.displayName || 'User'}
-            </Link>
+              <li className="nav-item">
+                <Link to="/profile" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
+                  <i className="bi bi-person-fill mx-2" style={{ color: "#6b6968" }}></i>
+                  {user.displayName || 'User'}
+                </Link>
+              </li>
           ) : (
-            <Link to="/signin" className="btn btn-signin text-decoration-none" onClick={closeNavbar}>
+            <Link to="/signin" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
               Sign Up
             </Link>
           )
         )}
+        </ul>
       </div>
     </nav>
   );

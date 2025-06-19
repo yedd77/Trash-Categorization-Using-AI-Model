@@ -10,6 +10,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 const Dashboard = () => {
 
   // State to hold data
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [stationCount, setStationCount] = useState(0);
   const [userCount, setUserCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,8 @@ const Dashboard = () => {
       try {
         const res = await fetch(
           "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
-        );
+        );12
+         
         const data = await res.json();
         setUserCount(data.userCount);
       } catch (err) {
@@ -43,10 +45,16 @@ const Dashboard = () => {
     })();
   }, []);
 
+  // Function to handle the toggle of the sidebar
+  // Function to handle sidebar toggle
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-collapse", isCollapsed);
+  }, [isCollapsed]);
+
   return (
     <>
       <div className="app-wrapper">
-        <AdminNavbar />
+        <AdminNavbar toggleSidebar={() => setIsCollapsed(prev => !prev)} />
         <Sidebar />
         <div className="app-main">
           <div className="app-content-header">

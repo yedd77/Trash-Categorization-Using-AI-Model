@@ -75,6 +75,7 @@ export const checkAndMarkExpiredPoints = onSchedule("every 60 minutes", async ()
     const snapshot = await db
       .collection("Points")
       .where("expiresAt", "<=", now)
+      .where("isClaimed", "==", false)
       .where("isExpired", "==", false)
       .get();
 

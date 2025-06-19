@@ -4,3 +4,7 @@
     padding: 8px 35px  !important;
     text-decoration: none !important;
 }
+
+li.nav-item::marker {
+  display: none !important;
+}

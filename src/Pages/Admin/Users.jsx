@@ -3,6 +3,9 @@ import AdminNavbar from './Components/AdminNavbar'
 import Sidebar from './Components/sidebar'
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { FcGoogle } from 'react-icons/fc';
+import { MdEmail } from 'react-icons/md';
+
 
 const Users = () => {
 
@@ -13,6 +16,8 @@ const Users = () => {
   const [adminUserCount, setAdminUserCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   // function to fetch users from Firestore (exclude admin users)
   useEffect(() => {
@@ -53,6 +58,15 @@ const Users = () => {
   useEffect(() => {
     document.body.classList.toggle("sidebar-collapse", isCollapsed);
   }, [isCollapsed]);
+
+  // Function to copy UID to clipboard and show toast notification
+  const handleCopyUID = (uid) => {
+    navigator.clipboard.writeText(uid).then(() => {
+      setToastMessage("UID copied to clipboard!");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000); // auto-hide after 2 sec
+    });
+  };
   return (
     <>
       <div className="app-wrapper">
@@ -62,11 +76,11 @@ const Users = () => {
           <div className="app-content-header">
             <div className="container-fluid">
               <div className="row">
-                <div className="col-sm-6"><h3 className="mb-0">User</h3></div>
+                <div className="col-sm-6"><h3 className="mb-0">Users</h3></div>
                 <div className="col-sm-6">
                   <ol className="breadcrumb float-sm-end">
                     <li className="breadcrumb-item">Dashboard</li>
-                    <li className="breadcrumb-item active">User</li>
+                    <li className="breadcrumb-item active">Users</li>
                   </ol>
                 </div>
               </div>
@@ -78,7 +92,7 @@ const Users = () => {
               <div className="row g-1 mb-3">
                 <div className="col-12 col-sm-6 col-md-3">
                   <div className="info-box shadow-sm">
-                    <span className="info-box-icon text-bg-success shadow-sm"><i className="bi bi-check"></i></span>
+                    <span className="info-box-icon text-bg-primary shadow-sm"><i className="bi bi-person-fill-lock"></i></span>
                     <div className="info-box-content">
                       <span className="info-box-text">Total Admins</span>
                       <span className="info-box-number">{adminCount}</span>
@@ -87,7 +101,7 @@ const Users = () => {
                 </div>
                 <div className="col-12 col-sm-6 col-md-3">
                   <div className="info-box shadow-sm">
-                    <span className="info-box-icon text-bg-success shadow-sm"><i className="bi bi-check"></i></span>
+                    <span className="info-box-icon text-bg-success shadow-sm"><i className="bi bi-people-fill"></i></span>
                     <div className="info-box-content">
                       <span className="info-box-text">Total Users</span>
                       <span className="info-box-number">{normalUserCount}</span>
@@ -102,7 +116,7 @@ const Users = () => {
                     <div className="card-header">
                       <h3 className="card-title">User</h3>
                       <div className="card-tools">
-                        <div class="input-group input-group-sm" style={{ width: "200px" }}>
+                        <div className="input-group input-group-sm" style={{ width: "200px" }}>
                           <input
                             type="text"
                             className="form-control"
@@ -111,9 +125,9 @@ const Users = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                           />
 
-                          <div class="input-group-append">
-                            <button type="submit" class="btn btn-default">
-                              <i class="fas fa-search"></i>
+                          <div className="input-group-append">
+                            <button type="submit" className="btn btn-default">
+                              <i className="fas fa-search"></i>
                             </button>
                           </div>
                         </div>
@@ -121,14 +135,16 @@ const Users = () => {
                       </div>
                     </div>
                     <div className="card-body">
-                      <table className="table table-bordered table-striped">
+                      <table className="table table-bordered">
                         <thead>
                           <tr>
-                            <th>Email</th>
-                            <th>Providers</th>
-                            <th>Created</th>
-                            <th>Last Signed In</th>
-                            <th>UID</th>
+                            <th className="text-center">No</th>
+                            <th className="text-center">Email</th>
+                            <th className="text-center">Username</th>
+                            <th className="text-center">Providers</th>
+                            <th className="text-center">Created</th>
+                            <th className="text-center">Last Signed In</th>
+                            <th className="text-center">UID</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -136,13 +152,35 @@ const Users = () => {
                             .filter(user => user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
                             .map(user => (
                               <tr key={user.uid}>
+                                <td className="text-center">{users.indexOf(user) + 1}</td>
                                 <td>{user.email}</td>
-                                <td>{(user.provider || []).join(', ')}</td>
-                                <td>{new Date(user.creationTime).toLocaleString()}</td>
-                                <td>{new Date(user.lastSignInTime).toLocaleString()}</td>
-                                <td>{user.uid}</td>
+                                <td className="text-center">{user.displayName || 'Unknown User'}</td>
+                                <td className="text-center">
+                                  {(user.provider || []).map((provider, index) => (
+                                    <span key={index} className="me-2 d-inline-flex align-items-center">
+                                      {provider === 'google.com' && <FcGoogle className="me-1" />}
+                                      {provider === 'password' && <MdEmail className="me-1" />}
+                                    </span>
+                                  ))}
+                                </td>
+                                <td className="text-center">{new Date(user.creationTime).toLocaleString()}</td>
+                                <td className="text-center">{new Date(user.lastSignInTime).toLocaleString()}</td>
+                                <td>
+                                  <button
+                                    className="mx-5 btn btn-sm btn-outline-secondary"
+                                    onClick={() => handleCopyUID(user.uid)}
+                                    title="Copy UID">
+                                    <i className="bi bi-copy"></i>
+                                  </button>
+                                  <span>
+                                    {user.uid}
+                                  </span>
+
+                                  
+                                </td>
                               </tr>
                             ))}
+                          <tr><td colSpan={6} className='text-center' disabled>Showing {users.length} record{users.length !== 1 ? 's' : ''} from database</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -150,6 +188,17 @@ const Users = () => {
                 </div>
               </div>
             </div>
+            <div
+  className={`toast position-fixed bottom-0 end-0 m-3 ${showToast ? "show" : "hide"}`}
+  role="alert"
+  aria-live="assertive"
+  aria-atomic="true"
+  style={{ zIndex: 9999 }}
+>
+  <div className="toast-body">
+    {toastMessage}
+  </div>
+</div>
           </section>
 
         </main>

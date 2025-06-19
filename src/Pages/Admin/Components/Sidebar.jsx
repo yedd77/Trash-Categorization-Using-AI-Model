@@ -48,9 +48,9 @@ const Sidebar = () => (
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/admin/dashboard/reward" className="nav-link">
-                  <i className="bi bi-star-fill"></i>
-                  <p>Reward</p>
+                <Link to="/admin/dashboard/leaderboard" className="nav-link">
+                  <i className="bi bi-trophy-fill"></i>
+                  <p>Leaderboard</p>
                 </Link>
               </li>
               <li className="nav-item">

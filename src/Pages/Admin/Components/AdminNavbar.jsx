@@ -35,13 +35,12 @@ const AdminNavbar = ({ toggleSidebar }) => {
                                 data-lte-toggle="sidebar"
                                 href="#"
                                 role="button"
-                                onClick={handleSidebarToggle}
-                            >
+                                onClick={handleSidebarToggle}>
                                 <i className="bi bi-list"></i>
                             </a>
                         </li>
                         <li className="nav-item d-none d-md-block">
-                            <a href="#" className="nav-link">Home</a>
+                            <Link to="/admin/dashboard" className="nav-link">Home</Link>
                         </li>
                     </ul>
                     <ul className="navbar-nav ms-auto">
@@ -53,8 +52,7 @@ const AdminNavbar = ({ toggleSidebar }) => {
                                 <img
                                     src={user && user.photoURL ? user.photoURL : "../../dist/assets/img/user2-160x160.jpg"}
                                     className="user-image rounded-circle shadow"
-                                    alt="User Image"
-                                />
+                                    alt="User Image" />
                                 <span className="d-none d-md-inline">{user ? user.displayName : 'User'}</span>
                             </a>
                         </li>

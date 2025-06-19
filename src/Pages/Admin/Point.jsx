@@ -9,7 +9,7 @@ import { getApp } from "firebase/app";
 
 const Point = () => {
   // set state variables
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [totalPointDistributed, setTotalPointDistributed] = useState(0);
   const [totalPointClaimed, setTotalPointClaimed] = useState(0);
   const [totalPendingPoints, setTotalPendingPoints] = useState(0);
@@ -22,6 +22,7 @@ const Point = () => {
   const [claimedPointsData, setClaimedPointsData] = useState([]);
   const [pendingPointsData, setPendingPointsData] = useState([]);
   const [expiredPointsData, setExpiredPointsData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   //handle the toggle of the table
   const handlePointsCardClick = () => {
@@ -136,7 +137,9 @@ const Point = () => {
       const db = getFirestore();
       const expiredRef = query(
         collection(db, 'Points'),
-        where("expiresAt", "<=", new Date())
+        where("isExpired", '==', true),
+        where("isClaimed", '==', false)
+
       );
 
       try {
@@ -394,6 +397,17 @@ const Point = () => {
                   <div className="card card-outline card-primary">
                     <div className="card-header">
                       <h3 className="card-title">Points Distribution History</h3>
+                      <div className="card-tools">
+                        <div class="input-group input-group-sm" style={{ width: "200px" }}>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Search by user..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div className="card-body">
                       <table className="table">
@@ -405,18 +419,30 @@ const Point = () => {
                             <th>Trash Type</th>
                             <th>Scanned Date</th>
                             <th>Scanned Time</th>
+                            <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {pointsData.map((item) => (
-                            <tr key={item.id}>
-                              <td>{pointsData.indexOf(item) + 1}</td>
-                              <td>{item.username}</td>
-                              <td>{item.points}</td>
-                              <td>{item.itemType}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
-                            </tr>
+                          {Array.isArray(pointsData) && pointsData
+                            .filter(item => item.username?.toLowerCase().includes(searchTerm.toLowerCase()))
+                            .map((item, index) => (
+                              <tr key={item.id}>
+                                <td>{index + 1}</td>
+                                <td>{item.username}</td>
+                                <td>{item.points}</td>
+                                <td>{item.itemType}</td>
+                                <td>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
+                                <td>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
+                                <td>
+                                  {item.isClaimed ? (
+                                    <span className="badge bg-success">Claimed</span>
+                                  ) : item.isExpired ? (
+                                    <span className="badge bg-danger">Expired</span>
+                                  ) : (
+                                    <span className="badge bg-warning">Pending</span>
+                                  )}
+                                </td>
+                              </tr>
                           ))}
                           <tr>
                             <td colSpan={6} className='text-center' disabled>Showing {pointsData.length} record{pointsData.length !== 1 ? 's' : ''} from database</td>

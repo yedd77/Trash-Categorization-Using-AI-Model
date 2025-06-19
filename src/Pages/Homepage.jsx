@@ -1,12 +1,8 @@
 import React from 'react';
 import Navbar from '../Components/Navbar/Navbar';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-//import test firebase firestore
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-
-//import admin test
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
 
@@ -21,6 +17,13 @@ const addData = async () => {
   } catch (error) {
     console.error("Error adding document: ", error);
   }
+}
+
+
+const seed = async () => {
+  const db = getFirestore();
+
+  
 }
 
 const Homepage = () => {
