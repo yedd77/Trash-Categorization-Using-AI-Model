@@ -82,21 +82,43 @@ const Leaderboard = () => {
                       <table className="table">
                         <thead>
                           <tr>
-                            <th>Rank</th>
-                            <th>Username</th>
-                            <th>Trash Thrown</th>
-                            <th>Points Collected</th>
+                            <th className='text-center'>Rank</th>
+                            <th className='text-center'>Username</th>
+                            <th className='text-center'>Trash Thrown</th>
+                            <th className='text-center'>Points Collected</th>
                           </tr>
                         </thead>
                         <tbody>
                           {leaderboardData.map((user, index) => (
                             <tr key={user.id || user.uid || index}>
-                              <td>{index + 1}</td>
-                              <td>{user.username}</td>
-                              <td>{user.trashThrown}</td>
-                              <td>{user.totalPoints}</td>
+                              <td className='text-center'>
+                                {index + 1 === 1 ? (
+                                  <i className="bi bi-1-circle-fill" style={{ fontSize: '1.2rem', color: 'gold' }}></i>
+                                ) : index + 1 === 2 ? (
+                                  <i className="bi bi-2-circle-fill" style={{ fontSize: '1.2rem', color: 'silver' }}></i>
+                                ) : index + 1 === 3 ? (
+                                  <i className="bi bi-3-circle-fill" style={{ fontSize: '1.2rem', color: '#cd7f32' }}></i>
+                                ) : (
+                                  index + 1
+                                )}
+                              </td>
+                              <td className='text-center'>{user.username}</td>
+                              <td className='text-center'>{user.trashThrown}</td>
+                              <td className='text-center'>{user.totalPoints}</td>
                             </tr>
                           ))}
+                          <tr>
+                            <td colSpan="4" className="text-center fw-bold">
+                              {leaderboardData.length > 0 ? `Total Users: ${leaderboardData.length}` : ""}
+                            </td>
+                          </tr>
+                          {leaderboardData.length === 0 && (
+                            <tr>
+                              <td colSpan="4" className="text-center fw-bold">
+                                {leaderboardData.length === 0 ? "No data available" : ""}
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>

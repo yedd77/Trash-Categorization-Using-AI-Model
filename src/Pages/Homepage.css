@@ -1,0 +1,30 @@
+.empty{
+  margin: 0px;
+  padding: 0px;
+}
+.f-9{
+  font-size: 14px;
+}
+.text-justify{
+  text-align: justify;
+  text-justify: inter-word;
+}
+.accordion-button {
+  transition: background-color 0.3s ease;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #80BC44;
+  color: white;
+}
+
+.snap{
+  height: 100vh ;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+}
+
+.snap-child{
+  height: 100vh ;
+  scroll-snap-align: start;
+}

@@ -68,7 +68,6 @@ const Navbar = () => {
             </li>
           )}
           <li className="nav-item">
-            
             <Link to="/categorizer" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Try us</Link>
           </li>
         
