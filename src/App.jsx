@@ -5,7 +5,6 @@ import SignIn from './Pages/SignIn'
 import Register from './Pages/Register'
 import Categorizer from './Pages/Categorizer'
 import Profile from './Pages/Profile'
-import OurApp from './Pages/ourApp'
 import Dashboard from './Pages/Admin/Dashboard'
 import AdminRoute from './AdminRoute'
 import ForgotPassword from './Pages/ForgotPass'
@@ -31,7 +30,6 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/categorizer" element={<Categorizer />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/ourApp" element={<OurApp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPass />} />
 

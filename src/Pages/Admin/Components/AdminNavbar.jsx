@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../../../firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { Link } from 'react-router-dom';
+import '../../../Components/initialAvatar.jsx';
+import InitialAvatar from '../../../Components/initialAvatar.jsx';
+
 
 const AdminNavbar = ({ toggleSidebar }) => {
 
@@ -48,11 +51,8 @@ const AdminNavbar = ({ toggleSidebar }) => {
                         Go to Homepage
                         </Link>
                         <li className="nav-item dropdown user-menu">
-                            <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                                <img
-                                    src={user && user.photoURL ? user.photoURL : "../../dist/assets/img/user2-160x160.jpg"}
-                                    className="user-image rounded-circle shadow"
-                                    alt="User Image" />
+                            <a href="#" className="nav-link dropdown-toggle d-flex gap-3 align-items-center" data-bs-toggle="dropdown">
+                                <InitialAvatar username={user ? user.displayName : 'User'} size={30}/>
                                 <span className="d-none d-md-inline">{user ? user.displayName : 'User'}</span>
                             </a>
                         </li>

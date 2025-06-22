@@ -60,11 +60,11 @@ const Navbar = () => {
             <Link to="/" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Home</Link>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href="#" onClick={closeNavbar}>How it works</a>
+             <Link to="/?scrollTo=howItWorks" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>How it works</Link>
           </li>
           {!isPWA && (
             <li className="nav-item">
-              <Link to="/ourApp" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Our App</Link>
+              <Link to="/?scrollTo=download" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Our App</Link>
             </li>
           )}
           <li className="nav-item">
