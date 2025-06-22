@@ -22,7 +22,7 @@ Clone the repository
 
 ```
 git clone https://github.com/yedd77/Trash-Categorization-Using-AI-Model.git
-cd Trash-Categorization-Using-AI-Model.git
+cd Trash-Categorization-Using-AI-Model
 ```
 
 Install dependencies
