@@ -28,3 +28,42 @@
   height: 100vh ;
   scroll-snap-align: start;
 }
+
+/* Accordion header */
+.accordion-button {
+  background-color: #f0f0f0; /* light grey background */
+  color: #333; /* text color */
+}
+
+/* Accordion header when collapsed */
+.accordion-button.collapsed {
+  background-color: #f5faf0;
+  color: #555;
+}
+
+/* On hover/focus */
+.accordion-button:hover,
+.accordion-button:focus {
+  background-color: #f5faf0;
+  color: #000;
+}
+
+/* Accordion body */
+.accordion-body {
+  background-color: #f5faf0; /* white content background */
+  color: #222;
+  border-top: 1px solid #ccc;
+}
+
+/* Optional: Add border radius */
+.accordion-item {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #FEFBEB !important; /* green background when expanded */
+  color: white; /* white text when expanded */
+}

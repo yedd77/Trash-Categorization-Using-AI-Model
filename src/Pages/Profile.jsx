@@ -35,8 +35,8 @@ const Profile = () => {
     const [verifyStatus, setVerifyStatus] = useState("");
     const [verifyDescription, setVerifyDescription] = useState("");
     const [showVerifyProcess, setShowVerifyProcess] = useState(false);
-
-
+    const [ranking, setRanking] = useState(0);
+    const [totalRankings, setTotalRankings] = useState(0);
 
     // function to fetch points data like claimed, pending, and expired points
     // then will be dispyed in counter cards
@@ -416,6 +416,61 @@ const Profile = () => {
     const showLogoutConfirmation = () => {
         setShowLogoutModal(true);
     }
+
+    // Function to state the ranking of the user
+   useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+
+      const db = getFirestore();
+      const q = query(collection(db, 'Points'), where("isClaimed", "==", true));
+      const snapshot = await getDocs(q);
+
+      const leaderboardMap = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const uid = data.uid;
+        const points = data.points || 0;
+
+        if (!leaderboardMap[uid]) {
+          leaderboardMap[uid] = 0;
+        }
+
+        leaderboardMap[uid] += points;
+      });
+
+      const sorted = Object.entries(leaderboardMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([uid]) => uid);
+
+      const rank = sorted.indexOf(user.uid);
+      if (rank !== -1) {
+        setRanking(rank + 1);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+    useEffect(() => {
+      (async () => {
+      try {
+        const res = await fetch(
+          "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
+        );12
+         
+        const data = await res.json();
+        setTotalRankings(data.userCount);
+      } catch (err) {
+        setError("Error fetching user count.");
+      }
+    })();
+    },[]);
+
     return (
         <>
             {showNfcOverlay && (
@@ -519,7 +574,6 @@ const Profile = () => {
                                         <div className="card border-0 rounded-4 shadow-cs">
                                             <div className="card-body">
                                                 <p className="fw-semibold mb-2">Notification</p>
-                                                {/*debug*/}
                                                 {isPWA ? (
                                                     <>
                                                         <p className="empty">You have {pendingPoints} unclaimed points, claim now before they expire in {timeLeft}.</p>
@@ -541,6 +595,16 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 )}
+                                <div className="col-12 mb-2">
+                                    <div className="card border-0 rounded-4 shadow-cs">
+                                        <div className="card-body">
+                                            <p className="fw-semibold">Current Ranking</p>
+                                            <p className="fw-regular">
+                                                You are currently ranked <span className="fw-bold">{ranking}</span> out of <span className="fw-bold">{totalRankings}</span> users.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="col-12 mb-2">
                                     <div className="card border-0 rounded-4 shadow-cs">
                                         <div className="card-body">

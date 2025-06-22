@@ -180,7 +180,7 @@ const Users = () => {
                                 </td>
                               </tr>
                             ))}
-                          <tr><td colSpan={6} className='text-center' disabled>Showing {users.length} record{users.length !== 1 ? 's' : ''} from database</td></tr>
+                          <tr><td colSpan={7} className='text-center' disabled>Showing {users.length} record{users.length !== 1 ? 's' : ''} from database</td></tr>
                         </tbody>
                       </table>
                     </div>

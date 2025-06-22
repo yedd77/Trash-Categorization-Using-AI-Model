@@ -23,6 +23,8 @@ const Point = () => {
   const [pendingPointsData, setPendingPointsData] = useState([]);
   const [expiredPointsData, setExpiredPointsData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 20;
 
   //handle the toggle of the table
   const handlePointsCardClick = () => {
@@ -255,6 +257,17 @@ const Point = () => {
     fetchExpiredPointsData();
   }, []);
 
+  const filteredData = pointsData.filter(item =>
+    item.username?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
   //this function calculates the time left for a point to expire
   function getTimeLeft(expiresAt) {
     if (!expiresAt || !expiresAt.toDate) return '';
@@ -302,6 +315,15 @@ const Point = () => {
     updateExpiredPoints();
   }, []);
 
+  const maxVisiblePages = 5;
+  let startPage = Math.max(currentPage - Math.floor(maxVisiblePages / 2), 1);
+  let endPage = startPage + maxVisiblePages - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(endPage - maxVisiblePages + 1, 1);
+  }
+
   return (
     <>
       <div className="app-wrapper">
@@ -326,10 +348,10 @@ const Point = () => {
           <div className="app-content">
             <div className="container-fluid">
               <div className="row">
-                <div 
-                className="col-12 col-sm-6 col-md-3"
-                onClick={handlePointsCardClick}
-                style={{ cursor: 'pointer' }}>
+                <div
+                  className="col-12 col-sm-6 col-md-3"
+                  onClick={handlePointsCardClick}
+                  style={{ cursor: 'pointer' }}>
                   <div className="info-box shadow-sm">
                     <span className="info-box-icon text-bg-primary shadow-sm">
                       <i className="bi bi-trash"></i>
@@ -342,10 +364,10 @@ const Point = () => {
                     </div>
                   </div>
                 </div>
-                <div 
-                className="col-12 col-sm-6 col-md-3"
-                onClick={handleClaimedCardClick}
-                style={{ cursor: 'pointer' }}>
+                <div
+                  className="col-12 col-sm-6 col-md-3"
+                  onClick={handleClaimedCardClick}
+                  style={{ cursor: 'pointer' }}>
                   <div className="info-box shadow-sm">
                     <span className="info-box-icon text-bg-info shadow-sm">
                       <i className="bi bi-trash"></i>
@@ -358,10 +380,10 @@ const Point = () => {
                     </div>
                   </div>
                 </div>
-                <div 
-                className="col-12 col-sm-6 col-md-3"
-                onClick={handlePendingCardClick}
-                style={{ cursor: 'pointer' }}>
+                <div
+                  className="col-12 col-sm-6 col-md-3"
+                  onClick={handlePendingCardClick}
+                  style={{ cursor: 'pointer' }}>
                   <div className="info-box shadow-sm">
                     <span className="info-box-icon text-bg-warning shadow-sm">
                       <i className="bi bi-trash"></i>
@@ -374,10 +396,10 @@ const Point = () => {
                     </div>
                   </div>
                 </div>
-                <div 
-                className="col-12 col-sm-6 col-md-3"
-                onClick={handleExpiredCardClick}
-                style={{ cursor: 'pointer' }}>
+                <div
+                  className="col-12 col-sm-6 col-md-3"
+                  onClick={handleExpiredCardClick}
+                  style={{ cursor: 'pointer' }}>
                   <div className="info-box shadow-sm">
                     <span className="info-box-icon text-bg-danger shadow-sm">
                       <i className="bi bi-trash"></i>
@@ -393,41 +415,39 @@ const Point = () => {
               </div>
               {pointsCardClicked && (
                 <div className="row mb-3">
-                <div className="col-12">
-                  <div className="card card-outline card-primary">
-                    <div className="card-header">
-                      <h3 className="card-title">Points Distribution History</h3>
-                      <div className="card-tools">
-                        <div class="input-group input-group-sm" style={{ width: "200px" }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search by user..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                          />
+                  <div className="col-12">
+                    <div className="card card-outline card-primary">
+                      <div className="card-header">
+                        <h3 className="card-title">Points Distribution History</h3>
+                        <div className="card-tools">
+                          <div className="input-group input-group-sm" style={{ width: "200px" }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Search by user..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="card-body">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>No</th>
-                            <th>User</th>
-                            <th>Points</th>
-                            <th>Trash Type</th>
-                            <th>Scanned Date</th>
-                            <th>Scanned Time</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Array.isArray(pointsData) && pointsData
-                            .filter(item => item.username?.toLowerCase().includes(searchTerm.toLowerCase()))
-                            .map((item, index) => (
+                      <div className="card-body">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>User</th>
+                              <th>Points</th>
+                              <th>Trash Type</th>
+                              <th>Scanned Date</th>
+                              <th>Scanned Time</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedData.map((item, index) => (
                               <tr key={item.id}>
-                                <td>{index + 1}</td>
+                                <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
                                 <td>{item.username}</td>
                                 <td>{item.points}</td>
                                 <td>{item.itemType}</td>
@@ -443,141 +463,170 @@ const Point = () => {
                                   )}
                                 </td>
                               </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={7} className="text-center">
+                                Showing {paginatedData.length} of {filteredData.length} record{filteredData.length !== 1 ? 's' : ''}
+                              </td>
+                            </tr>
+
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="card-footer clearfix">
+                        <ul className="pagination pagination-sm m-0 float-right">
+                          {/* Previous */}
+                          <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                            <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>
+                              «
+                            </button>
+                          </li>
+
+                          {/* Page numbers (limited to 5) */}
+                          {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                            <li key={page} className={`page-item ${currentPage === page ? "active" : ""}`}>
+                              <button className="page-link" onClick={() => setCurrentPage(page)}>
+                                {page}
+                              </button>
+                            </li>
                           ))}
-                          <tr>
-                            <td colSpan={6} className='text-center' disabled>Showing {pointsData.length} record{pointsData.length !== 1 ? 's' : ''} from database</td>
-                          </tr>
-                        </tbody>
-                      </table>
+
+                          {/* Next */}
+                          <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                            <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>
+                              »
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               )}
               {claimedCardClicked && (
                 <div className="row mb-3">
-                <div className="col-12">
-                  <div className="card card-outline card-info">
-                    <div className="card-header">
-                      <h3 className="card-title">Point Claims History</h3>
-                    </div>
-                    <div className="card-body">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>No</th>
-                            <th>User</th>
-                            <th>Points</th>
-                            <th>Trash Type</th>
-                            <th>Claimed Date</th>
-                            <th>Claimed Time</th>
-                          </tr>
-
-                        </thead>
-                        <tbody>
-                          {claimedPointsData.map((item) => (
-                            <tr key={item.id}>
-                              <td>{claimedPointsData.indexOf(item) + 1}</td>
-                              <td>{item.username}</td>
-                              <td>{item.points}</td>
-                              <td>{item.itemType}</td>
-                              <td>{item.claimedAt && item.claimedAt.toDate ? item.claimedAt.toDate().toLocaleDateString() : ''}</td>
-                              <td>{item.claimedAt && item.claimedAt.toDate ? item.claimedAt.toDate().toLocaleTimeString() : ''}</td>
+                  <div className="col-12">
+                    <div className="card card-outline card-info">
+                      <div className="card-header">
+                        <h3 className="card-title">Point Claims History</h3>
+                      </div>
+                      <div className="card-body">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>User</th>
+                              <th>Points</th>
+                              <th>Trash Type</th>
+                              <th>Claimed Date</th>
+                              <th>Claimed Time</th>
                             </tr>
-                          ))}
-                          <tr>
-                            <td colSpan={6} className='text-center' disabled>Showing {claimedPointsData.length} record{claimedPointsData.length !== 1 ? 's' : ''} from database</td>
-                          </tr>
-                        </tbody>
-                      </table>
+
+                          </thead>
+                          <tbody>
+                            {claimedPointsData.map((item) => (
+                              <tr key={item.id}>
+                                <td>{claimedPointsData.indexOf(item) + 1}</td>
+                                <td>{item.username}</td>
+                                <td>{item.points}</td>
+                                <td>{item.itemType}</td>
+                                <td>{item.claimedAt && item.claimedAt.toDate ? item.claimedAt.toDate().toLocaleDateString() : ''}</td>
+                                <td>{item.claimedAt && item.claimedAt.toDate ? item.claimedAt.toDate().toLocaleTimeString() : ''}</td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={6} className='text-center' disabled>Showing {claimedPointsData.length} record{claimedPointsData.length !== 1 ? 's' : ''} from database</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               )}
               {pendingCardClicked && (
                 <div className="row mb-3">
-                <div className="col-12">
-                  <div className="card card-outline card-warning">
-                    <div className="card-header">
-                      <h3 className="card-title">Pending Points History</h3>
-                    </div>
-                    <div className="card-body">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>No</th>
-                            <th>User</th>
-                            <th>Points</th>
-                            <th>Trash Type</th>
-                            <th>Scanned Date</th>
-                            <th>Scanned Time</th>
-                            <th>Expired in</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pendingPointsData.map((item) => (
-                            <tr key={item.id}>
-                              <td>{pendingPointsData.indexOf(item) + 1}</td>
-                              <td>{item.username}</td>
-                              <td>{item.points}</td>
-                              <td>{item.itemType}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
-                              <td>{getTimeLeft(item.expiresAt)}</td>
+                  <div className="col-12">
+                    <div className="card card-outline card-warning">
+                      <div className="card-header">
+                        <h3 className="card-title">Pending Points History</h3>
+                      </div>
+                      <div className="card-body">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>User</th>
+                              <th>Points</th>
+                              <th>Trash Type</th>
+                              <th>Scanned Date</th>
+                              <th>Scanned Time</th>
+                              <th>Expired in</th>
                             </tr>
-                          ))}
-                          <tr>
-                            <td colSpan={7} className='text-center' disabled>Showing {pendingPointsData.length} record{pendingPointsData.length !== 1 ? 's' : ''} from database</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {pendingPointsData.map((item) => (
+                              <tr key={item.id}>
+                                <td>{pendingPointsData.indexOf(item) + 1}</td>
+                                <td>{item.username}</td>
+                                <td>{item.points}</td>
+                                <td>{item.itemType}</td>
+                                <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
+                                <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
+                                <td>{getTimeLeft(item.expiresAt)}</td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={7} className='text-center' disabled>Showing {pendingPointsData.length} record{pendingPointsData.length !== 1 ? 's' : ''} from database</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               )}
               {expiredCardClicked && (
                 <div className="row mb-3">
-                <div className="col-12">
-                  <div className="card card-outline card-danger">
-                    <div className="card-header">
-                      <h3 className="card-title">Expired Points History</h3>
-                    </div>
-                    <div className="card-body">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>No</th>
-                            <th>User</th>
-                            <th>Points</th>
-                            <th>Trash Type</th>
-                            <th>Scanned Date</th>
-                            <th>Scanned Time</th>
-                            <th>Expired Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {expiredPointsData.map((item) => (
-                            <tr key={item.id}>
-                              <td>{expiredPointsData.indexOf(item) + 1}</td>
-                              <td>{item.username}</td>
-                              <td>{item.points}</td>
-                              <td>{item.itemType}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
-                              <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
-                              <td>{item.expiresAt && item.expiresAt.toDate ? item.expiresAt.toDate().toLocaleTimeString() : ''}</td>
+                  <div className="col-12">
+                    <div className="card card-outline card-danger">
+                      <div className="card-header">
+                        <h3 className="card-title">Expired Points History</h3>
+                      </div>
+                      <div className="card-body">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>User</th>
+                              <th>Points</th>
+                              <th>Trash Type</th>
+                              <th>Scanned Date</th>
+                              <th>Scanned Time</th>
+                              <th>Expired Time</th>
                             </tr>
-                          ))}
-                          <tr>
-                            <td colSpan={7} className='text-center' disabled>Showing {expiredPointsData.length} record{expiredPointsData.length !== 1 ? 's' : ''} from database</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {expiredPointsData.map((item) => (
+                              <tr key={item.id}>
+                                <td>{expiredPointsData.indexOf(item) + 1}</td>
+                                <td>{item.username}</td>
+                                <td>{item.points}</td>
+                                <td>{item.itemType}</td>
+                                <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleDateString() : ''}</td>
+                                <td>{item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleTimeString() : ''}</td>
+                                <td>{item.expiresAt && item.expiresAt.toDate ? item.expiresAt.toDate().toLocaleTimeString() : ''}</td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={7} className='text-center' disabled>Showing {expiredPointsData.length} record{expiredPointsData.length !== 1 ? 's' : ''} from database</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               )}
             </div>
           </div>

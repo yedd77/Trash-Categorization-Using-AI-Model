@@ -26,6 +26,7 @@ const Station = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isPWA, setIsPWA] = useState(getIsPWA());
 
 
   // function to fetch station from Firestore
@@ -172,6 +173,18 @@ const Station = () => {
     }
   }
 
+  //function to check if user is on PWA or not
+  function getIsPWA() {
+    // Check if the app is running as a PWA
+    if (document.referrer.startsWith('android-app://')) return true; // Trusted Web Activity (TWA) on Android
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
+    if (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches) return true;
+    if (window.navigator.standalone === true) return true; // iOS standalone check
+
+    return false;
+  }
+
   return (
     <>
       <div className="app-wrapper">
@@ -256,7 +269,7 @@ const Station = () => {
                       <div className="card-header">
                         <h3 className="card-title">Station List</h3>
                         <div className="card-tools">
-                          <div class="input-group input-group-sm" style={{ width: "200px" }}>
+                          <div className="input-group input-group-sm" style={{ width: "200px" }}>
                             <input
                               type="text"
                               className="form-control"
@@ -312,7 +325,9 @@ const Station = () => {
                     </div>
                   </div>
                 </div>
-                <div className="row mt-4">
+
+                {isPWA && (
+                  <div className="row mt-4">
                   <div className="col-md-12">
                     <div className="card card-outline card-info">
                       <div className="card-header">
@@ -328,6 +343,7 @@ const Station = () => {
                     </div>
                   </div>
                 </div>
+                )}
                 {selectedStation && (
                   <div className="row mt-4">
                     <div className="col-md-12">
@@ -343,7 +359,6 @@ const Station = () => {
                           <div className='form-group'>
                             <label>Tag UID</label>
                             <input className="form-control" disabled value={selectedStation.tagUID} />
-                            {/* TODO - Add copy button*/}
                           </div>
                           <div className="form-group">
                             <label>Station URL</label>
