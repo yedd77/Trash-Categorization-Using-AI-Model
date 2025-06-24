@@ -26,7 +26,7 @@ const Dashboard = () => {
   const [trashLoading, setTrashLoading] = useState(true);
   const [stationTrashCounts, setStationTrashCounts] = useState({});
   const [stationNames, setStationNames] = useState({});
-  const [hourlyCounts, setHourlyCounts] = useState({});
+  const [hourlyCounts, setHourlyCounts] = useState(Array(24).fill(0));
   const [userContributions, setUserContributions] = useState({});
   const [stackedData, setStackedData] = useState([]);
   const [timeSeriesCounts, setTimeSeriesCounts] = useState({});
@@ -141,9 +141,13 @@ const Dashboard = () => {
         const pointsSnapshot = await getDocs(collection(db, "Points"));
         const counts = Array(24).fill(0);
         pointsSnapshot.forEach(doc => {
-          const ts = doc.data().claimedAt?.toDate?.() || new Date();
-          const hour = ts.getHours();
-          counts[hour]++;
+          const claimedAt = doc.data().claimedAt;
+          if (claimedAt && typeof claimedAt.toDate === "function") {
+            const ts = claimedAt.toDate();
+            const hour = ts.getHours();
+            counts[hour]++;
+          }
+          // else: skip this doc
         });
         setHourlyCounts(counts);
       } catch (err) {
@@ -206,7 +210,7 @@ const Dashboard = () => {
         const pointsSnapshot = await getDocs(collection(db, "Points"));
         const counts = {};
         pointsSnapshot.forEach(doc => {
-          const ts = doc.data().createdAt?.toDate?.() || new Date();
+          const ts = doc.data().claimedAt?.toDate?.() || new Date();
           const dateStr = ts.toISOString().slice(0, 10); // YYYY-MM-DD
           counts[dateStr] = (counts[dateStr] || 0) + 1;
         });
@@ -228,7 +232,7 @@ const Dashboard = () => {
   const stackedLabels = stackedData.names ? Object.keys(stackedData.data).map(binID => stackedData.names[binID] || binID) : [];
   const trashTypes = stackedData.trashTypes || [];
   const timeSeriesLabels = Object.keys(timeSeriesCounts).sort();
-  const timeSeriesData = timeSeriesLabels.map(date => timeSeriesCounts[date]);
+  const timeSeriesData = timeSeriesLabels.map(date => timeSeriesCounts[date] || 0);
 
   const datasets = trashTypes.map((type, idx) => ({
     label: type,
@@ -238,17 +242,6 @@ const Dashboard = () => {
     }),
     backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14'][idx % 7],
   }));
-
-  const chartData = {
-    labels: ['Stations', 'Users'],
-    datasets: [
-      {
-        label: 'Count',
-        data: [stationCount, userCount],
-        backgroundColor: ['#28a745', '#17a2b8'],
-      },
-    ],
-  };
 
   const trashTypeChartData = {
     labels: trashTypeLabels,
@@ -279,10 +272,9 @@ const Dashboard = () => {
       },
       tooltip: { enabled: true },
       datalabels: {
-        color: '#fff',
+        color: '#000000',
         font: {
-          weight: 'bold',
-          size: 16,
+          size: 12,
         },
         formatter: (value, context) => {
           const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -290,17 +282,6 @@ const Dashboard = () => {
           return percentage.toFixed(1) + '%';
         },
       },
-    },
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: true },
-    },
-    scales: {
-      y: { beginAtZero: true },
     },
   };
 
@@ -319,9 +300,8 @@ const Dashboard = () => {
       legend: { display: false },
       datalabels: {
         display: true,
-        color: '#fff',
+        color: '#000000',
         font: {
-          weight: 'bold',
           size: 12,
         },
         formatter: (value) => value,
@@ -331,20 +311,31 @@ const Dashboard = () => {
     scales: { y: { beginAtZero: true } },
   };
 
-  const lineChartData = {
+  const hourlyChartData = {
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [{
-      label: 'Collections',
+      label: 'Submissions',
       data: hourlyCounts,
       borderColor: '#28a745',
+      backgroundColor: '#198754',
       fill: false,
       tension: 0.3,
     }],
   };
 
-  const lineChartOptions = {
+  const hourlyChartOptions = {
     responsive: true,
-    plugins: { legend: { display: true } },
+    plugins: { 
+      legend: { display: true },
+      datalabels: {
+        display: true,
+        color: '#000000',
+        font: {        
+          size: 12,
+        },
+        formatter: (value) => value,
+      },
+     },
     scales: { y: { beginAtZero: true } },
   };
 
@@ -353,14 +344,24 @@ const Dashboard = () => {
     datasets: [{
       label: 'Contributions',
       data: userBarData,
-      backgroundColor: '#fd7e14',
+      backgroundColor: '#0d6efd',
     }],
   };
 
   const userBarChartOptions = {
     indexAxis: 'y',
     responsive: true,
-    plugins: { legend: { display: false } },
+    plugins: { 
+      legend: { display: false }, 
+      datalabels: {
+          display: true,
+          color: '#000000',
+          font: {        
+            size: 12,           
+          },
+          formatter: (value) => value,
+        },
+    },
     scales: { x: { beginAtZero: true } },
   };
 
@@ -371,28 +372,50 @@ const Dashboard = () => {
 
   const stackedBarChartOptions = {
     responsive: true,
-    plugins: { legend: { display: true } },
+    plugins: { 
+      legend: { display: true },
+      datalabels: {
+            display: true,
+            color: '#000000',
+            font: {        
+              size: 12,           
+            },
+            formatter: (value) => value,
+          },
+    },
     scales: {
       x: { stacked: true },
       y: { stacked: true, beginAtZero: true },
     },
   };
 
-  const timeSeriesChartData = {
+  const dailyChartData = {
     labels: timeSeriesLabels,
     datasets: [{
       label: 'Submissions',
       data: timeSeriesData,
       borderColor: '#6f42c1',
+      backgroundColor: '#198754',
       fill: false,
       tension: 0.3,
     }],
   };
 
-  const timeSeriesChartOptions = {
+  const dailyChartOptions = {
     responsive: true,
-    plugins: { legend: { display: true } },
+    plugins: { 
+      legend: { display: true },
+      datalabels: {
+          display: true,
+          color: '#000000',
+          font: {        
+            size: 12,
+          },
+          formatter: (value) => value,
+        },
+    },
     scales: { y: { beginAtZero: true } },
+    
   };
 
   return (
@@ -472,7 +495,7 @@ const Dashboard = () => {
               <div className="row">
                 {/* Pie Chart: Trash Type Distribution */}
                 <div className="col-12 col-md-6 mb-4">
-                  <div className="card card-danger">
+                  <div className="card card-primary">
                     <div className="card-header">
                       <h3 className="card-title">Trash Type Distribution</h3>
                     </div>
@@ -508,16 +531,31 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                {/* Line Chart: Collection Time Trend (Hourly) */}
+                {/* Bar Chart: Trash Disposal Frequency (Hourly) */}
                 <div className="col-12 col-md-6 mb-4">
-                  <div className="card card-warning">
+                  <div className="card card-success">
                     <div className="card-header">
-                      <h3 className="card-title">Collection Time Trend (Hourly)</h3>
+                      <h3 className="card-title">Trash Disposal Frequency (Hourly)</h3>
                     </div>
                     <div className="card-body" style={{ display: 'block' }}>
                       <div className="chart">
                         <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
-                          <Bar data={lineChartData} options={lineChartOptions} />
+                          <Bar data={hourlyChartData} options={hourlyChartOptions} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Bar Chart: Trash Disposal Frequency (Daily) */}
+                <div className="col-12 col-md-6 mb-4">
+                  <div className="card card-success">
+                    <div className="card-header">
+                      <h3 className="card-title">Trash Disposal Frequency (Daily)</h3>
+                    </div>
+                    <div className="card-body" style={{ display: 'block' }}>
+                      <div className="chart">
+                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                          <Bar data={dailyChartData} options={dailyChartOptions} />
                         </div>
                       </div>
                     </div>
@@ -525,7 +563,7 @@ const Dashboard = () => {
                 </div>
                 {/* Horizontal Bar Chart: User Contribution */}
                 <div className="col-12 col-md-6 mb-4">
-                  <div className="card card-success">
+                  <div className="card card-primary">
                     <div className="card-header">
                       <h3 className="card-title">User Contribution</h3>
                     </div>
@@ -540,7 +578,7 @@ const Dashboard = () => {
                 </div>
                 {/* Stacked Bar Chart: Trash Type Per Station */}
                 <div className="col-12 col-md-6 mb-4">
-                  <div className="card card-info">
+                  <div className="card card-primary">
                     <div className="card-header">
                       <h3 className="card-title">Trash Type Per Station</h3>
                     </div>
@@ -552,22 +590,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-                {/* Time Series Line Chart: Waste Submission Frequency */}
-                <div className="col-12 col-md-6 mb-4">
-                  <div className="card card-warning">
-                    <div className="card-header">
-                      <h3 className="card-title">Waste Submission Frequency (Daily)</h3>
-                    </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
-                          <Bar data={timeSeriesChartData} options={timeSeriesChartOptions} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </div>                
               </div>
             </div>
           </div>
