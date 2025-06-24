@@ -450,6 +450,10 @@ const Dashboard = () => {
                       <h3 className='fw-semibold'>{pointsCount}</h3>
                       <p>Total Waste Submissions</p>
                     </div>
+                    <Link to="/admin/dashboard/point" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+                      <i className="bi bi-link-45deg"></i>
+                      More info
+                    </Link>
                   </div>
                 </div>
                 <div className="col-lg-3 col-6">
@@ -458,6 +462,10 @@ const Dashboard = () => {
                       <h3 className='fw-semibold'>{activeStationCount}</h3>
                       <p>Active Stations</p>
                     </div>
+                    <Link to="/admin/dashboard/station" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+                      <i className="bi bi-link-45deg"></i>
+                      More info
+                    </Link>
                   </div>
                 </div>
               </div>

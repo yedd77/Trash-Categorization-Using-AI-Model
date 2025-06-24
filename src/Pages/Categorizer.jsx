@@ -286,7 +286,6 @@ const Categorizer = () => {
       "carton"
     ];
     const plasticKeywords = [
-      "plastic bag - wrapper",
       "plastic container",
       "straw",
       "styrofoam piece",
@@ -305,8 +304,9 @@ const Categorizer = () => {
     const trashKeywords = [
       "cigarette",
       "other litter",
-      "unlabeled litter"
-    ]
+      "unlabeled litter",
+      "plastic bag - wrapper"
+    ];
 
     const bestPrediction = result.predictions.reduce((a, b) =>
       a.confidence > b.confidence ? a : b

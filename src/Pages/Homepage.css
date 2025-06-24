@@ -143,3 +143,10 @@
   );
   transition: all 0.475s;
 }
+
+    .category-text {
+      color: #e8f5e3; /* Soft green */
+      font-weight: 700;
+      font-size: 3rem;
+      text-align: center;
+    }

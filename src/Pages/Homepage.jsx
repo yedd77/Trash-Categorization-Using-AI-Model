@@ -319,42 +319,42 @@ function Homepage() {
               </div>
             </div>
             {/* Mobile view download*/}
-            { isInstallable && (
-               <div className="d-block d-md-none mt-5" id='download' ref={downloadRef}>
-              <div className="text-center">
-                <img
-                  src="/download-icon.png"
-                  className="object-fit-cover rounded-start w-25 mb-5"
-                  alt="Mobile Banner"
-                />
-                <p
-                  className="fw-bold text-center fs-1 m-0"
-                  style={{ color: "#80BC44" }}
-                >
-                  Download Our
-                </p>
-                <p
-                  className="fw-bold text-center fs-1 m-0 mb-5"
-                  style={{ color: "#80BC44" }}>
-                  Progressive Web-App
-                </p>
-                <div className="lh-lg fs-4 mb-5">
-                  <p className="text-dark mx-3">Get Recognized and Rewarded for Recycling the right way Today</p>
+            {isInstallable && (
+              <div className="d-block d-md-none mt-5" id='download' ref={downloadRef}>
+                <div className="text-center">
+                  <img
+                    src="/download-icon.png"
+                    className="object-fit-cover rounded-start w-25 mb-5"
+                    alt="Mobile Banner"
+                  />
+                  <p
+                    className="fw-bold text-center fs-1 m-0"
+                    style={{ color: "#80BC44" }}
+                  >
+                    Download Our
+                  </p>
+                  <p
+                    className="fw-bold text-center fs-1 m-0 mb-5"
+                    style={{ color: "#80BC44" }}>
+                    Progressive Web-App
+                  </p>
+                  <div className="lh-lg fs-4 mb-5">
+                    <p className="text-dark mx-3">Get Recognized and Rewarded for Recycling the right way Today</p>
+                  </div>
+                  <button
+                    className="btn rounded-3 ps-0 pe-0 mb-5"
+                    style={{
+                      backgroundColor: "#80BC44",
+                      color: "#fff",
+                      width: "28%",
+                    }}
+                    onClick={handleInstallClick}>
+                    Try Our App
+                  </button>
                 </div>
-                <button
-                  className="btn rounded-3 ps-0 pe-0 mb-5"
-                  style={{
-                    backgroundColor: "#80BC44",
-                    color: "#fff",
-                    width: "28%",
-                  }}
-                  onClick={handleInstallClick}>
-                  Try Our App
-                </button>
               </div>
-            </div>
             )}
-           
+
             <div className="py-5 min-vh-100 justify-content-center p-3">
               <div className="text-center">
                 <p className="fw-bold text-center fs-3 m-0" style={{ color: "#80BC44" }}>
@@ -606,6 +606,15 @@ function Homepage() {
                     ][i]}</p>
                   </div>
                 ))}
+                <div class="container py-5">
+                  <div class="row text-center justify-content-center align-items-end">
+                    <div class="col-2 category-text">PLASTIC</div>
+                    <div class="col-2 category-text">GLASS</div>
+                    <div class="col-2 category-text">METAL</div>
+                    <div class="col-2 category-text">TRASH</div>
+                    <div class="col-2 category-text">PAPER</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -682,7 +691,7 @@ function Homepage() {
                       <span className="download-content">Install PWA </span>
                     </button>
                   ) : (
-                    <p className="text-muted mt-5">Open our site on your mobile and install our PWA!</p>  
+                    <p className="text-muted mt-5">Open our site on your mobile and install our PWA!</p>
                   )}
                 </div>
               </div>
