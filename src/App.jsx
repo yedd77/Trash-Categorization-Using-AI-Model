@@ -19,6 +19,7 @@ import AddStation from './Pages/Admin/AddStation'
 import Users from './Pages/Admin/Users'
 import Leaderboard from './Pages/Admin/Leaderboard'
 import Point from './Pages/Admin/Point'
+import Csv from './Pages/csvuploader'
 
 
 function App() {
@@ -32,7 +33,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPass />} />
-
+        <Route path="/csvuploader" element={<Csv />} />
 
         {/* Admin Route */}
         <Route path="/admin/dashboard" 

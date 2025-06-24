@@ -37,6 +37,8 @@ const Profile = () => {
     const [showVerifyProcess, setShowVerifyProcess] = useState(false);
     const [ranking, setRanking] = useState(0);
     const [totalRankings, setTotalRankings] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     // function to fetch points data like claimed, pending, and expired points
     // then will be dispyed in counter cards
@@ -123,39 +125,6 @@ const Profile = () => {
                         setEarliestPoint(null);
                         setTimeLeft("No pending points");
                     }
-
-                    // Fetching claimed data
-                    const pointsDataQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", true)
-                    );
-                    const pointsDataSnapshot = await getDocs(pointsDataQuery);
-
-                    const dataWithStationNames = await Promise.all(
-                        pointsDataSnapshot.docs.map(async (docSnap, index) => {
-                            const data = docSnap.data();
-                            const stationRef = doc(db, "Station", data.claimedBin);
-                            const stationDoc = await getDoc(stationRef);
-                            const stationName = stationDoc.exists() ? stationDoc.data().stationName : "Unknown";
-
-                            const claimedAt = data.claimedAt?.toDate?.() || new Date();
-                            const dateStr = claimedAt.toLocaleDateString();
-                            const timeStr = claimedAt.toLocaleTimeString();
-
-                            return {
-                                no: index + 1,
-                                stationName,
-                                itemType: data.itemType,
-                                date: dateStr,
-                                time: timeStr,
-                                points: data.points || 0,
-                            };
-                        })
-                    );
-
-                    setClaimedData(dataWithStationNames);
-
                 } catch (error) {
                     console.error("Error fetching user point data:", error);
                 }
@@ -166,6 +135,70 @@ const Profile = () => {
 
         return () => unsubscribe();
     }, []);
+
+    useEffect(() => {
+        const db = getFirestore();
+        const auth = getAuth();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const fetchClaimedData = async () => {
+                    const pointsDataQuery = query(
+                        collection(db, "Points"),
+                        where("uid", "==", user.uid),
+                        where("isClaimed", "==", true)
+                    );
+
+                    const pointsDataSnapshot = await getDocs(pointsDataQuery);
+
+                    const dataWithStationNames = await Promise.all(
+                        pointsDataSnapshot.docs.map(async (docSnap) => {
+                            const data = docSnap.data();
+                            const stationRef = doc(db, "Station", data.claimedBin);
+                            const stationDoc = await getDoc(stationRef);
+                            const stationName = stationDoc.exists() ? stationDoc.data().stationName : "Unknown";
+
+                            const claimedAt = data.claimedAt?.toDate?.() || new Date();
+                            const dateStr = claimedAt.toLocaleDateString();
+                            const timeStr = claimedAt.toLocaleTimeString();
+
+                            return {
+                                stationName,
+                                itemType: data.itemType,
+                                date: dateStr,
+                                time: timeStr,
+                                points: data.points || 0,
+                            };
+                        })
+                    );
+
+                    setClaimedData(dataWithStationNames);
+                };
+
+                fetchClaimedData();
+            }
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = claimedData.slice(indexOfFirstItem, indexOfLastItem);
+
+    const totalPages = Math.ceil(claimedData.length / itemsPerPage);
+    const pageNumbers = [];
+    const visiblePageCount = 5;
+
+    let startPage = Math.max(1, currentPage - Math.floor(visiblePageCount / 2));
+    let endPage = startPage + visiblePageCount - 1;
+
+    if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - visiblePageCount + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+    }
 
     // function to get the username of the user from firebase auth
     useEffect(() => {
@@ -418,58 +451,58 @@ const Profile = () => {
     }
 
     // Function to state the ranking of the user
-   useEffect(() => {
-    const auth = getAuth();
+    useEffect(() => {
+        const auth = getAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
 
-      const db = getFirestore();
-      const q = query(collection(db, 'Points'), where("isClaimed", "==", true));
-      const snapshot = await getDocs(q);
+            const db = getFirestore();
+            const q = query(collection(db, 'Points'), where("isClaimed", "==", true));
+            const snapshot = await getDocs(q);
 
-      const leaderboardMap = {};
+            const leaderboardMap = {};
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const uid = data.uid;
-        const points = data.points || 0;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const uid = data.uid;
+                const points = data.points || 0;
 
-        if (!leaderboardMap[uid]) {
-          leaderboardMap[uid] = 0;
-        }
+                if (!leaderboardMap[uid]) {
+                    leaderboardMap[uid] = 0;
+                }
 
-        leaderboardMap[uid] += points;
-      });
+                leaderboardMap[uid] += points;
+            });
 
-      const sorted = Object.entries(leaderboardMap)
-        .sort((a, b) => b[1] - a[1])
-        .map(([uid]) => uid);
+            const sorted = Object.entries(leaderboardMap)
+                .sort((a, b) => b[1] - a[1])
+                .map(([uid]) => uid);
 
-      const rank = sorted.indexOf(user.uid);
-      if (rank !== -1) {
-        setRanking(rank + 1);
-      }
-    });
+            const rank = sorted.indexOf(user.uid);
+            if (rank !== -1) {
+                setRanking(rank + 1);
+            }
+        });
 
-    return () => unsubscribe();
-  }, []);
+        return () => unsubscribe();
+    }, []);
 
 
     useEffect(() => {
-      (async () => {
-      try {
-        const res = await fetch(
-          "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
-        );12
-         
-        const data = await res.json();
-        setTotalRankings(data.userCount);
-      } catch (err) {
-        setError("Error fetching user count.");
-      }
-    })();
-    },[]);
+        (async () => {
+            try {
+                const res = await fetch(
+                    "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
+                ); 12
+
+                const data = await res.json();
+                setTotalRankings(data.userCount);
+            } catch (err) {
+                setError("Error fetching user count.");
+            }
+        })();
+    }, []);
 
     return (
         <>
@@ -622,9 +655,9 @@ const Profile = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {claimedData.map((data, idx) => (
-                                                            <tr key={idx}>
-                                                                <td>{data.no}</td>
+                                                        {currentItems.map((data, index) => (
+                                                            <tr key={index}>
+                                                                <td>{indexOfFirstItem + index + 1}</td>
                                                                 <td>{data.stationName}</td>
                                                                 <td>{data.itemType}</td>
                                                                 <td>{data.date}</td>
@@ -635,6 +668,23 @@ const Profile = () => {
                                                     </tbody>
                                                 </table>
                                             </div>
+                                        </div>
+                                        <div className="card-footer clearfix">
+                                            <ul className="pagination pagination-sm m-0 float-right">
+                                                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                                                    <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>«</button>
+                                                </li>
+
+                                                {pageNumbers.map(page => (
+                                                    <li key={page} className={`page-item ${currentPage === page ? "active" : ""}`}>
+                                                        <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
+                                                    </li>
+                                                ))}
+
+                                                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                                                    <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>»</button>
+                                                </li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
