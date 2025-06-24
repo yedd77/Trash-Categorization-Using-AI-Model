@@ -359,7 +359,7 @@ const Point = () => {
                     <div className="info-box-content">
                       <span className="info-box-text">Total Point Distributed</span>
                       <span className="info-box-number">
-                        {totalPointDistributed}
+                        {totalPointDistributed.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ const Point = () => {
                     <div className="info-box-content">
                       <span className="info-box-text">Total Point Claimed</span>
                       <span className="info-box-number">
-                        {totalPointClaimed}
+                        {totalPointClaimed.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -391,7 +391,7 @@ const Point = () => {
                     <div className="info-box-content">
                       <span className="info-box-text">Total Pending Points</span>
                       <span className="info-box-number">
-                        {totalPendingPoints}
+                        {totalPendingPoints.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -407,7 +407,7 @@ const Point = () => {
                     <div className="info-box-content">
                       <span className="info-box-text">Total Point Expired</span>
                       <span className="info-box-number">
-                        {totalPointExpired}
+                        {totalPointExpired.toLocaleString()}
                       </span>
                     </div>
                   </div>

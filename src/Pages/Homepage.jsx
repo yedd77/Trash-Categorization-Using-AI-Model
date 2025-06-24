@@ -621,10 +621,10 @@ function Homepage() {
                     </div>
                     <div className="d-flex justify-content-around mt-3 gap-4">
                       <div>
-                        <small>Points Collected</small><br /><strong>{leaderboardData[0]?.totalPoints}</strong>
+                        <small>Points Collected</small><br /><strong>{leaderboardData[0]?.totalPoints.toLocaleString()}</strong>
                       </div>
                       <div>
-                        <small>Trash Thrown</small><br /><strong>{leaderboardData[0]?.trashThrown}</strong>
+                        <small>Trash Thrown</small><br /><strong>{leaderboardData[0]?.trashThrown.toLocaleString()}</strong>
                       </div>
                     </div>
                   </div>

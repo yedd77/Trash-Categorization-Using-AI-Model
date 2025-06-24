@@ -578,7 +578,7 @@ const Profile = () => {
                                 <div className="col-4 d-flex align-items-stretch">
                                     <div className="card border-0 rounded-4 shadow-cs w-100">
                                         <div className="card-body text-center">
-                                            <p className="fw-bold fs-3 mb-2 text-success">{claimedPoints}</p>
+                                            <p className="fw-bold fs-3 mb-2 text-success">{claimedPoints.toLocaleString()}</p>
                                             <p className="fw-semibold">Claimed Points</p>
                                         </div>
                                     </div>

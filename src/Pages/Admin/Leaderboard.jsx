@@ -103,8 +103,8 @@ const Leaderboard = () => {
                                 )}
                               </td>
                               <td className='text-center'>{user.username}</td>
-                              <td className='text-center'>{user.trashThrown}</td>
-                              <td className='text-center'>{user.totalPoints}</td>
+                              <td className='text-center'>{user.trashThrown.toLocaleString()}</td>
+                              <td className='text-center'>{user.totalPoints.toLocaleString()}</td>
                             </tr>
                           ))}
                           <tr>
