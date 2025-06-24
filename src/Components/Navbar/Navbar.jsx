@@ -19,6 +19,28 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+
+  useEffect(() => {
+  // Check if app is running in standalone mode (PWA)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (isStandalone) {
+    setIsPWAInstalled(true); // Running as installed PWA
+  } else {
+    setIsPWAInstalled(false); // Running in normal browser (mobile or desktop)
+  }
+
+  // Listen for install event (optional)
+  const onAppInstalled = () => {
+    setIsPWAInstalled(true);
+  };
+
+  window.addEventListener('appinstalled', onAppInstalled);
+
+  return () => window.removeEventListener('appinstalled', onAppInstalled);
+}, []);
 
   useEffect(() => {
     setIsPWA(getIsPWA());
@@ -38,6 +60,17 @@ const Navbar = () => {
   const closeNavbar = () => {
     setIsNavCollapsed(true); // Optional: closes menu when link clicked (on mobile)
   };
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
@@ -60,9 +93,9 @@ const Navbar = () => {
             <Link to="/" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Home</Link>
           </li>
           <li className="nav-item">
-             <Link to="/?scrollTo=howItWorks" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>How it works</Link>
+            <Link to="/?scrollTo=howItWorks" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>How it works</Link>
           </li>
-          {!isPWA && (
+          {!isPWA || !isPWAInstalled && (
             <li className="nav-item">
               <Link to="/?scrollTo=download" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Our App</Link>
             </li>
@@ -70,21 +103,21 @@ const Navbar = () => {
           <li className="nav-item">
             <Link to="/categorizer" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>Try us</Link>
           </li>
-        
-        {!loading && (
-          user ? (
+
+          {!loading && (
+            user ? (
               <li className="nav-item">
                 <Link to="/profile" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
                   <i className="bi bi-person-fill mx-2" style={{ color: "#6b6968" }}></i>
                   {user.displayName || 'User'}
                 </Link>
               </li>
-          ) : (
-            <Link to="/signin" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
-              Sign Up
-            </Link>
-          )
-        )}
+            ) : (
+              <Link to="/signin" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
+                Sign Up
+              </Link>
+            )
+          )}
         </ul>
       </div>
     </nav>

@@ -81,17 +81,7 @@ function Homepage() {
     }
   }, [location]);
 
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
 
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -349,7 +339,7 @@ function Homepage() {
                       width: "28%",
                     }}
                     onClick={handleInstallClick}>
-                    Try Our App
+                    Install Our PWA
                   </button>
                 </div>
               </div>
@@ -606,13 +596,13 @@ function Homepage() {
                     ][i]}</p>
                   </div>
                 ))}
-                <div class="container py-5">
-                  <div class="row text-center justify-content-center align-items-end">
-                    <div class="col-2 category-text">PLASTIC</div>
-                    <div class="col-2 category-text">GLASS</div>
-                    <div class="col-2 category-text">METAL</div>
-                    <div class="col-2 category-text">TRASH</div>
-                    <div class="col-2 category-text">PAPER</div>
+                <div className="container py-5">
+                  <div className="row text-center justify-content-center align-items-end">
+                    <div className="col-2 category-text">PLASTIC</div>
+                    <div className="col-2 category-text">GLASS</div>
+                    <div className="col-2 category-text">METAL</div>
+                    <div className="col-2 category-text">TRASH</div>
+                    <div className="col-2 category-text">PAPER</div>
                   </div>
                 </div>
               </div>
@@ -688,7 +678,7 @@ function Homepage() {
                 <div className="d-flex justify-content-center">
                   {isInstallable ? (
                     <button className="download" onClick={handleInstallClick}>
-                      <span className="download-content">Install PWA </span>
+                      <span className="download-content">Install Our PWA </span>
                     </button>
                   ) : (
                     <p className="text-muted mt-5">Open our site on your mobile and install our PWA!</p>
