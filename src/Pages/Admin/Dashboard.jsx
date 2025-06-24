@@ -113,8 +113,10 @@ const Dashboard = () => {
         const pointsSnapshot = await getDocs(collection(db, "Points"));
         const counts = {};
         pointsSnapshot.forEach(doc => {
-          const binID = doc.data().claimedBin || "Unknown";
-          counts[binID] = (counts[binID] || 0) + 1;
+          const binID = doc.data().claimedBin;
+          if (binID) { // Only count if binID exists and is not empty
+            counts[binID] = (counts[binID] || 0) + 1;
+          }
         });
 
         // Fetch all Stations for mapping binID to stationName
@@ -181,7 +183,8 @@ const Dashboard = () => {
         const data = {};
         const trashTypesSet = new Set();
         pointsSnapshot.forEach(doc => {
-          const binID = doc.data().claimedBin || "Unknown";
+          const binID = doc.data().claimedBin;
+          if (!binID) return; // Skip if binID is missing or empty
           const itemType = doc.data().itemType || "Unknown";
           trashTypesSet.add(itemType);
           if (!data[binID]) data[binID] = {};
@@ -260,7 +263,8 @@ const Dashboard = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
+      legend:
+      {
         display: true,
         position: 'top',
         labels: {
@@ -296,6 +300,7 @@ const Dashboard = () => {
 
   const stationBarChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       datalabels: {
@@ -325,6 +330,7 @@ const Dashboard = () => {
 
   const hourlyChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { 
       legend: { display: true },
       datalabels: {
@@ -351,6 +357,7 @@ const Dashboard = () => {
   const userBarChartOptions = {
     indexAxis: 'y',
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { 
       legend: { display: false }, 
       datalabels: {
@@ -372,6 +379,7 @@ const Dashboard = () => {
 
   const stackedBarChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { 
       legend: { display: true },
       datalabels: {
@@ -403,6 +411,7 @@ const Dashboard = () => {
 
   const dailyChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { 
       legend: { display: true },
       datalabels: {
@@ -470,7 +479,7 @@ const Dashboard = () => {
                 <div className="col-lg-3 col-6">
                   <div className="small-box text-bg-warning">
                     <div className="inner" style={{ color: '#fff' }}>
-                      <h3 className='fw-semibold'>{pointsCount}</h3>
+                      <h3 className='fw-semibold'>{pointsCount.toLocaleString()}</h3>
                       <p>Total Waste Submissions</p>
                     </div>
                     <Link to="/admin/dashboard/point" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
@@ -500,17 +509,15 @@ const Dashboard = () => {
                       <h3 className="card-title">Trash Type Distribution</h3>
                     </div>
                     <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
+                      <div className="chart" style={{ height: '250px' }}>
                         {trashLoading ? (
                           <p>Loading...</p>
-                        ) : (
-                          <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                        ) : (                        
                             <Pie
                               key={JSON.stringify(trashTypeLabels) + JSON.stringify(trashTypeData)}
                               data={trashTypeChartData}
                               options={trashTypeChartOptions}
-                            />
-                          </div>
+                            />                          
                         )}
                       </div>
                     </div>
@@ -522,11 +529,9 @@ const Dashboard = () => {
                     <div className="card-header">
                       <h3 className="card-title">Trash Collected Per Station</h3>
                     </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                    <div className="card-body">
+                      <div className="chart" style={{height: '250px'}}>
                           <Bar data={stationBarChartData} options={stationBarChartOptions} plugins={[ChartDataLabels]} />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -537,11 +542,9 @@ const Dashboard = () => {
                     <div className="card-header">
                       <h3 className="card-title">Trash Disposal Frequency (Hourly)</h3>
                     </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                    <div className="card-body">
+                      <div className="chart" style={{height: '250px'}}>
                           <Bar data={hourlyChartData} options={hourlyChartOptions} />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -552,11 +555,9 @@ const Dashboard = () => {
                     <div className="card-header">
                       <h3 className="card-title">Trash Disposal Frequency (Daily)</h3>
                     </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                    <div className="card-body">
+                      <div className="chart" style={{ height: '250px' }}>                        
                           <Bar data={dailyChartData} options={dailyChartOptions} />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -567,11 +568,9 @@ const Dashboard = () => {
                     <div className="card-header">
                       <h3 className="card-title">User Contribution</h3>
                     </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
-                          <Bar data={userBarChartData} options={userBarChartOptions} />
-                        </div>
+                    <div className="card-body">
+                      <div className="chart" style={{ height: '250px' }}>            
+                          <Bar data={userBarChartData} options={userBarChartOptions} />                        
                       </div>
                     </div>
                   </div>
@@ -582,11 +581,9 @@ const Dashboard = () => {
                     <div className="card-header">
                       <h3 className="card-title">Trash Type Per Station</h3>
                     </div>
-                    <div className="card-body" style={{ display: 'block' }}>
-                      <div className="chart">
-                        <div style={{ minHeight: 250, height: 250, maxHeight: 250, maxWidth: '100%', margin: '0 auto' }}>
+                    <div className="card-body">
+                      <div className="chart" style={{ height: '250px' }}>                     
                           <Bar data={stackedBarChartData} options={stackedBarChartOptions} />
-                        </div>
                       </div>
                     </div>
                   </div>
