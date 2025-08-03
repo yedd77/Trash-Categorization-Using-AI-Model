@@ -242,3 +242,18 @@
   background-color: rgb(128, 188, 68) !important;
   border: 2px solid rgb(128, 188, 68) !important;
 }
+
+.text-bg-glass{
+  color: #fff;
+  background-color: #603814;
+}
+
+.text-bg-paper{
+  color: #fff;
+  background-color: #1693c8;
+}
+
+.text-bg-plastic{
+  color: #fff;
+  background-color: #ed7b20;
+}

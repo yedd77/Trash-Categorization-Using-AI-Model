@@ -55,7 +55,12 @@ const ForgotPassword = () => {
           <div className="card border-0 resizeCard">
             <div className="card-body d-flex flex-column align-items-center text-center w-100">
               <div id="page-ForPass" className="text-center">
-                <i className="bi bi-robot" style={{ fontSize: "50px" }}></i>
+                <img
+                  src="/icons/icon-192x192.png"
+                  alt="Forgot Password"
+                  className="img-fluid mb-3 "
+                  style={{ width: "20%" }}
+                />
                 <p className="fw-bold fs-2">{title}</p>
                 <p className="fw-light text-secondary f-9">{desc}</p>
                 <div className="form-floating mb-3">

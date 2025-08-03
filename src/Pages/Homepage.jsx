@@ -142,7 +142,7 @@ function Homepage() {
           <div className="container">
             {/* Mobile view intro */}
             <div className="d-block d-md-none">
-              <div className="text-center mt-5 mb-5">
+              <div className="text-center mt-2 mb-5">
                 <div className="col-md-4 col-12 mb-4">
                   <img src="/app-display.png" className="img-fluid object-fit-cover rounded-start" alt="Device preview" />
                 </div>

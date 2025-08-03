@@ -10,6 +10,7 @@ import "./responsive.css";
 import heic2any from "heic2any";
 import QRScanner from '../Components/QRScanner.jsx';
 import blockhash from 'blockhash-core';
+import emailjs from '@emailjs/browser';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -40,6 +41,8 @@ const Categorizer = () => {
   const [verifyStatus, setVerifyStatus] = useState("");
   const [verifyDescription, setVerifyDescription] = useState("");
   const [hashExist, setHashExist] = useState(false);
+  const [onlineStatus, setOnlineStatus] = useState(false);
+  const [email, setEmail] = useState('');
 
   // Set point for each item type thrown
   const typeTrash = 1;
@@ -49,6 +52,8 @@ const Categorizer = () => {
 
   // Set up Firebase functions and Firestore
   const auth = getAuth();
+
+  emailjs.init(import.meta.env.VITE_EMAIL_PUBLIC_KEY);
 
   // Upload method : Drag and Drop 1
   // handle drag and drop functionality using react-dropzone
@@ -156,6 +161,7 @@ const Categorizer = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsAuthenticated(true);
+        setEmail(user.email); // Set email if available
       } else {
         console.log("User is not authenticated");
         setIsAuthenticated(false);
@@ -255,22 +261,36 @@ const Categorizer = () => {
     setOnLoader(true);
     setError(null);
 
-    try {
-      const result = await sendImageToBackend(files[0]);
+    //check if the web app status is online or not from database
+    const db = getFirestore();
+    const statusDoc = await getDoc(doc(db, 'Status', 'dcFW9gjA6DH73sIw9MVO'));
 
-      // Check if the result contains predictions
-      if (result && result.predictions && result.predictions.length > 0) {
-        setHavePrediction(true);
-        getPredictionSummary(result); // Call function to get prediction summary
-      } else {
-        setHavePrediction(false);
-        setError('No Trash Detected');
-      }
-    } catch (err) {
-      setError('Failed to classify image.');
-      console.error('Error classifying image:', err);
-    } finally {
+    if (!statusDoc.exists() || !statusDoc.data().isOnline) {
+      console.log('The service is currently unavailable. Please try again later.');
       setOnLoader(false);
+      setHavePrediction(false);
+
+      setOnlineStatus(false);
+    }
+    else {
+      console.log(onlineStatus);
+      setOnlineStatus(true);
+      try {
+        const result = await sendImageToBackend(files[0]);
+        // Check if the result contains predictions
+        if (result && result.predictions && result.predictions.length > 0) {
+          setHavePrediction(true);
+          getPredictionSummary(result); // Call function to get prediction summary
+        } else {
+          setHavePrediction(false);
+          setError('No Trash Detected');
+        }
+      } catch (err) {
+        setError('Failed to classify image.');
+        console.error('Error classifying image:', err);
+      } finally {
+        setOnLoader(false);
+      }
     }
   };
 
@@ -285,21 +305,21 @@ const Categorizer = () => {
       "paper",
       "carton"
     ];
-    const plasticKeywords = [
-      "plastic container",
-      "straw",
-      "styrofoam piece",
-      "other plastic",
-      "lid",
-      "cup",
-      "bottle cap",
-      "bottle"
+    const plasticOrMetalKeywords = [
+      "plastic container", //orange
+      "straw", //orange
+      "styrofoam piece", //orange
+      "other plastic", //orange
+      "lid", //orange
+      "cup", //orange
+      "bottle cap", //orange
+      "bottle", //orange
+      "aluminium foil", //orange
+      "can", //orange
+      "pop tab" //orange
     ];
-    const metalGlassKeywords = [
-      "aluminium foil",
-      "broken glass",
-      "can",
-      "pop tab"
+    const glassKeywords = [
+      "broken glass", //brown
     ];
     const trashKeywords = [
       "cigarette",
@@ -321,16 +341,16 @@ const Categorizer = () => {
         <>Keep it dry and clean. Try to fold or stack it. Please throw it into our <b>blue recycling bin</b>.</>
       );
     }
-    else if (plasticKeywords.some(keyword => itemPredicted.includes(keyword))) {
-      itemType = "Plastic";
+    else if (plasticOrMetalKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Plastic or Metal";
       setInstructions(
         <>Rinse it out and remove any labels. Flatten if possible. Please throw it into our <b>green recycling bin</b>.</>
       );
     }
-    else if (metalGlassKeywords.some(keyword => itemPredicted.includes(keyword))) {
-      itemType = "Metal or glass";
+    else if (glassKeywords.some(keyword => itemPredicted.includes(keyword))) {
+      itemType = "Glass";
       setInstructions(
-        <>Rinse it out and remove any labels. Flatten if possible. Please throw it into our <b>yellow recycling bin</b>.</>
+        <>Rinse it out and remove any labels. Please throw it into our <b>yellow recycling bin</b>.</>
       );
     }
     else if (trashKeywords.some(keyword => itemPredicted.includes(keyword))) {
@@ -579,11 +599,11 @@ const Categorizer = () => {
   const getBadgeClass = (itemType) => {
     switch (itemType) {
       case "Paper":
-        return "text-bg-info"; // green
-      case "Plastic":
-        return "text-bg-success"; // yellow
-      case "Metal or glass":
-        return "text-bg-warning"; // blue
+        return "text-bg-paper";
+      case "Plastic or Metal":
+        return "text-bg-plastic";
+      case "Glass":
+        return "text-bg-glass";
       case "Trash":
         return "text-bg-dark"; // black/gray
       default:
@@ -614,15 +634,37 @@ const Categorizer = () => {
   // Utility constant to determine the footer content based on PWA and authentication status
   let footerContent;
   if (!isPWA) {
-    footerContent = "Install our app and sign up to get rewarded each time you scan and throw it correctly.";
+    footerContent = "Install our app to get rewarded each time you scan and throw it correctly.";
   } else if (!isAuthenticated) {
     footerContent = "Almost there! Sign up to start earning rewards for your waste disposal.";
   } else {
     footerContent = "";
   }
 
+  // Utility function to send email notification to email when the user submit 
+  const sendEmail = (e) => {
+
+    if (!email) {
+      alert("Please enter your email address.");
+      return;
+    }
+    e.preventDefault();
+    emailjs.send('service_a80ruij', 'template_cfup87d', {
+      email: email,
+    }, import.meta.env.VITE_EMAIL_PUBLIC_KEY)
+      .then((result) => {
+        console.log(result.text);
+        alert("Request submitted! We will get back to you soon.");
+        window.location.reload();
+      }, (error) => {
+        console.error(error.text);
+        alert("Failed to send.");
+      });
+  };
+
   return (
     <>
+
       {showNfcOverlay && (
         <div style={{
           position: 'fixed',
@@ -754,7 +796,6 @@ const Categorizer = () => {
                                   const file = new File([blob], `sample${idx + 1}.jpg`, { type: blob.type });
                                   const hash = await getImageHash(file);
                                   checkAndStoreHash(hash);
-                                  console.log("Sample Image Hash:", hash);
                                   file.preview = URL.createObjectURL(file);
                                   setFiles([file]);
                                   setHasImage(true);
@@ -814,7 +855,6 @@ const Categorizer = () => {
         </div>
       ) : (
         <>
-          {/* Displayed layout after user click "Classify Image" */}
           <Navbar />
           {onLoader ? (
             <div className="d-flex justify-content-center align-items-center flex-column" style={{ minHeight: '90vh' }}>
@@ -914,14 +954,16 @@ const Categorizer = () => {
                     <div className="main-section container">
                       <div className="result-card">
                         <div className="d-flex justify-content-center mb-2">
-                          <div className="card border-0" style={{ height: '30vh' }}>
-                            <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                              <img
-                                src={files[0].preview}
-                                className="rounded-3 mb-1"
-                                style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
+                          {onlineStatus && (
+                            <div className="card border-0" style={{ height: '30vh' }}>
+                              <div className="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                                <img
+                                  src={files[0].preview}
+                                  className="rounded-3 mb-1"
+                                  style={{ objectFit: 'cover', height: '200px', width: '100%', margin: '0 auto' }} />
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                         <div className="text-block">
                           {havePrediction && (
@@ -948,6 +990,34 @@ const Categorizer = () => {
                           )}
                         </div>
                       </div>
+
+                      {!onlineStatus && (
+                        <>
+                          <div className=" d-flex flex-column align-items-center justify-content-center text-center">
+                            <img
+                              src="/offline.png"
+                              className="rounded-3 mb-3"
+                              style={{ height: '80px', width: '100%', margin: '0 auto' }} />
+                          </div>
+
+                          <p className="text-semibold fw-semibold fs-2 lh-sm my-1">We are offline</p>
+                          <p className='text-muted fw-regular lh-sm fs-10'>
+                            Thank you for your interest! This project is in demo mode with limited access.
+                            To try it out, please press the button below and we'll notify you via email when we are online.
+                          </p>
+
+                          <div className="col-10">
+
+                            <div className="form-floating">
+                              <input type="email" className="form-control form-control-sm border-0 border-bottom" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                              <label htmlFor="email-input" className="text-muted" style={{ fontSize: "14px" }}>
+                                Your Email
+                              </label>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
                       {error && (
                         <>
                           <p className="text-semibold fw-semibold fs-2 lh-sm my-1">No Trash Detected</p>
@@ -955,14 +1025,27 @@ const Categorizer = () => {
                         </>
                       )}
                       <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">
-                        <button
-                          className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
-                          type="button"
-                          style={{ backgroundColor: '#80BC44', color: '#fff' }}
 
-                          onClick={() => window.location.reload()}>
-                          <i className="bi bi-lightbulb-fill me-2"></i> Classify More
-                        </button>
+                        {onlineStatus ? (
+                          <button
+                            className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
+                            type="button"
+                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
+
+                            onClick={() => window.location.reload()}>
+                            <i className="bi bi-lightbulb-fill me-2"></i> Classify More
+                          </button>
+                        ) : (
+                          <button
+                            className="btn rounded-4 shadow fw-semibold w-100 w-md-25 text-nowrap responsive-font"
+                            type="button"
+                            style={{ backgroundColor: '#80BC44', color: '#fff' }}
+
+                            onClick={sendEmail}>
+                            <i className="bi bi-lightbulb-fill me-2"></i>Notify Me
+                          </button>
+                        )}
+
                         {isPWA && error !== "No Trash Detected" && isAuthenticated && !hashExist && (
                           <button
                             className="btn btn-outline-secondary rounded-4 fw-semibold w-100 w-md-25 text-nowrap responsive-font"
@@ -978,9 +1061,9 @@ const Categorizer = () => {
                       </div>
                     </div>
                     {!isPWA && (
-                      <div className="mt-auto text-center px-8 pb-3">
+                      <div className="mt-auto text-center px-4 pb-3">
                         {successfull && <span className="text-success">{successfull}</span>}
-                        <p className="fw-semibold empty text-muted">
+                        <p className="fw-medium empty text-muted">
                           {footerContent}
                         </p>
                       </div>
@@ -988,7 +1071,7 @@ const Categorizer = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </div >
           )}
         </>
       )}

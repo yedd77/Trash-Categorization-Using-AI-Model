@@ -29,7 +29,7 @@ const SignIn = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Function to handle login
+  // Function to handle login 
   const handleLogin = async () => {
 
     //email regex

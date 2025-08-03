@@ -10,12 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "blockhash-core": "^0.1.0",
     "bootstrap": "^5.3.5",
     "chart.js": "^4.5.0",
     "chartjs-plugin-datalabels": "^2.2.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
+    "emailjs": "^4.0.3",
+    "emailjs-com": "^3.2.0",
     "firebase": "^11.6.0",
     "firebase-admin": "^13.4.0",
     "firebase-functions": "^6.3.2",

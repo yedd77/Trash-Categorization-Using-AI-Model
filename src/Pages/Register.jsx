@@ -74,7 +74,7 @@ const Register = () => {
         <div className="container-fluid h-100 p-0">
           <div className="row h-100 m-0">
             {/* Mobile Image */}
-            <div className="col-12 col-md-7 d-block d-md-none">
+            <div className="col-12 col-md-7 p-0">
               <img
                 src="https://img.freepik.com/free-photo/used-plastic-bottles-recycling-bins-earth-day-campaign_53876-104848.jpg"
                 alt="Recyclables"
