@@ -82,6 +82,19 @@ function Homepage() {
   }, [location]);
 
 
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault(); // Prevent auto-prompt
+      setDeferredPrompt(e); // Save the event for later
+      setIsInstallable(true); // Show install button
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -309,41 +322,41 @@ function Homepage() {
               </div>
             </div>
             {/* Mobile view download*/}
-            {isInstallable && (
-              <div className="d-block d-md-none mt-5" id='download' ref={downloadRef}>
-                <div className="text-center">
-                  <img
-                    src="/download-icon.png"
-                    className="object-fit-cover rounded-start w-25 mb-5"
-                    alt="Mobile Banner"
-                  />
-                  <p
-                    className="fw-bold text-center fs-1 m-0"
-                    style={{ color: "#80BC44" }}
-                  >
-                    Download Our
-                  </p>
-                  <p
-                    className="fw-bold text-center fs-1 m-0 mb-5"
-                    style={{ color: "#80BC44" }}>
-                    Progressive Web-App
-                  </p>
-                  <div className="lh-lg fs-4 mb-5">
-                    <p className="text-dark mx-3">Get Recognized and Rewarded for Recycling the right way Today</p>
-                  </div>
-                  <button
-                    className="btn rounded-3 ps-0 pe-0 mb-5"
-                    style={{
-                      backgroundColor: "#80BC44",
-                      color: "#fff",
-                      width: "28%",
-                    }}
-                    onClick={handleInstallClick}>
-                    Install Our PWA
-                  </button>
+
+            <div className="d-block d-md-none mt-5" id='download' ref={downloadRef}>
+              <div className="text-center">
+                <img
+                  src="/download-icon.png"
+                  className="object-fit-cover rounded-start w-25 mb-5"
+                  alt="Mobile Banner"
+                />
+                <p
+                  className="fw-bold text-center fs-1 m-0"
+                  style={{ color: "#80BC44" }}
+                >
+                  Download Our
+                </p>
+                <p
+                  className="fw-bold text-center fs-1 m-0 mb-5"
+                  style={{ color: "#80BC44" }}>
+                  Progressive Web-App
+                </p>
+                <div className="lh-lg fs-4 mb-5">
+                  <p className="text-dark mx-3">Get Recognized and Rewarded for Recycling the right way Today</p>
                 </div>
+                <button
+                  className="btn rounded-3 ps-0 pe-0 mb-5"
+                  style={{
+                    backgroundColor: "#80BC44",
+                    color: "#fff",
+                    width: "28%",
+                  }}
+                  onClick={handleInstallClick}>
+                  Install Our PWA
+                </button>
               </div>
-            )}
+            </div>
+
 
             <div className="py-5 min-vh-100 justify-content-center p-3">
               <div className="text-center">
@@ -676,13 +689,7 @@ function Homepage() {
                 <h1 className="fw-bold text-center fs-2 mb-3" style={{ color: "#80BC44" }}>Download Our Progressive Web-App (PWA)</h1>
                 <p className="fw-regular text-center fs-4 mb-3" style={{ color: "#244c4c" }}>Get Recognized and Rewarded for Recycling the right way Today</p>
                 <div className="d-flex justify-content-center">
-                  {isInstallable ? (
-                    <button className="download" onClick={handleInstallClick}>
-                      <span className="download-content">Install Our PWA </span>
-                    </button>
-                  ) : (
-                    <p className="text-muted mt-5">Open our site on your mobile and install our PWA!</p>
-                  )}
+                  <p className="text-muted mt-5">Open our site on your mobile and install our PWA!</p>
                 </div>
               </div>
             </div>
