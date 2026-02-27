@@ -1,0 +1,10 @@
+.btn-signin{
+    background-color: #80BC44 !important;
+    color: white !important;
+    padding: 8px 35px  !important;
+    text-decoration: none !important;
+}
+
+li.nav-item::marker {
+  display: none !important;
+}

@@ -1,0 +1,259 @@
+:root {
+  --col1: #80bc44;
+  --col2: #62a34d;
+  --col3: #cce1c5;
+  --point-color: #80BC44;
+  --size: 5px;
+}
+
+.dots-spinner {
+  width: 3.6rem;
+  height: 3.4rem;
+  position: relative;
+  animation: spin 2s linear infinite;
+}
+
+.dots-spinner > span {
+  display: block;
+  --size: 1.2rem;
+  height: var(--size);
+  width: var(--size);
+  background-color: var(--col1);
+  border-radius: 50%;
+  position: absolute;
+  animation: pulse 3s ease-out infinite var(--delay),
+             colorChange 4s linear infinite;
+}
+
+.dot-1 {
+  top: 0;
+  left: calc(50% - (var(--size) / 2));
+  --delay: 2s;
+}
+.dot-2 {
+  bottom: 0;
+  left: 0;
+  --delay: 1s;
+}
+.dot-3 {
+  bottom: 0;
+  right: 0;
+  --delay: 0s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes colorChange {
+  0% {
+    background-color: var(--col1);
+  }
+  33.33% {
+    background-color: var(--col2);
+  }
+  66.66% {
+    background-color: var(--col3);
+  }
+  100% {
+    background-color: var(--col1);
+  }
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #8d888a;
+  font-family: "Poppins";
+  font-weight: 500;
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.dots::after {
+  content: '';
+  display: inline-block;
+  width: 1ch;
+  text-align: left;
+  animation: dotsBlink 1s steps(3, end) infinite;
+}
+
+@keyframes dotsBlink {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+  100% { content: '.'; }
+}
+
+.dropArea{
+    display: grid;
+    place-items: center;
+    background-color: antiquewhite;
+    width: 500px;
+    height: 400px;
+
+}
+
+.text{
+    border: dotted 2px black;
+    width: 400px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.empty{
+  margin: 0px;
+  padding: 0px;
+}
+
+.f-8{
+  font-size: 12px;
+}
+
+.f-9{
+  font-size: 14px;
+}
+
+.main-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.result-card {
+  max-width: 850px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center; /* Center vertically */
+  gap: 1rem;
+}
+
+.result-card img {
+  max-width: 350px;
+  border-radius: 10px;
+}
+
+.text-block {
+  text-align: left;
+  max-width: 400px;
+}
+
+.info-text,
+.subtitle {
+  color: #6c757d;
+}
+
+.btn-custom {
+  background-color: #80BC44;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-custom i {
+  margin-right: 8px;
+}
+
+.btn-custom:hover {
+  background-color: #6aa636;
+}
+
+/* Small devices (portrait tablets and large phones, 600px and up) */
+@media only screen and (max-width: 600px) {
+  .resizeCard {
+    width: 80%;
+    font-size: 14px;
+  }
+}
+
+/* Large devices (laptops/desktops, 992px and up) */
+@media only screen and (min-width: 992px) {
+  .resizeCard {
+    width: 30%;
+  }
+}
+
+
+.uploadLoader {
+  overflow: hidden;
+
+  top: 10%;
+  left: 0;
+  display: flex;
+  align-items: center;
+  z-index: 100000;
+}
+
+.dotsElement {
+  border-radius: 100%;
+  border: var(--size) solid var(--point-color);
+  margin: calc(var(--size) * 2);
+}
+
+.dotsElement:nth-child(1) {
+  animation: preloader 0.6s ease-in-out alternate infinite;
+}
+.dotsElement:nth-child(2) {
+  animation: preloader 0.6s ease-in-out alternate 0.2s infinite;
+}
+
+.dotsElement:nth-child(3) {
+  animation: preloader 0.6s ease-in-out alternate 0.4s infinite;
+}
+
+@keyframes preloader {
+  100% {
+    transform: scale(2);
+  }
+}
+
+.btn-outline-secondary {
+  color: rgb(128, 188, 68);
+  border: 2px solid rgb(128, 188, 68);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  color: #fff !important;
+  background-color: rgb(128, 188, 68) !important;
+  border: 2px solid rgb(128, 188, 68) !important;
+}
+
+.text-bg-glass{
+  color: #fff;
+  background-color: #ffc525;
+}
+
+.text-bg-paper{
+  color: #fff;
+  background-color: #1693c8;
+}
+
+.text-bg-plastic{
+  color: #fff;
+  background-color: #c90a00;
+}
