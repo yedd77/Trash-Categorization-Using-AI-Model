@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../Components/Navbar/Navbar';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, setDoc, doc, orderBy, limit } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import './Homepage.css';
@@ -11,112 +11,42 @@ import { useLocation } from 'react-router-dom';
 
 
 function Homepage() {
-  //for dummy data
-  //const [leaderboardData, setLeaderboardData] = useState([]);
+  const [leaderboardData, setLeaderboardData] = useState([]);
   const [mobile, setMobile] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
-  /*
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
 
-      const db = getFirestore();
-      const q = query(collection(db, 'Points'), where("isClaimed", "==", true));
-      const snapshot = await getDocs(q);
-      const leaderboardMap = {};
+  // Fetching leaderboard data from Firestore (Leaderboard Collection)
+  useEffect(() => { 
+    const fetchLeaderboard = async () => {
+      try {
+        const db = getFirestore();
+        const q = query(
+          collection(db, 'Leaderboard'),
+          orderBy('totalPoints', 'desc'),
+          limit(10)
+        );
+        const snapshot = await getDocs(q);
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const uid = data.uid;
-        const username = data.username || "Unknown User";
-        const points = data.points || 0;
-
-        if (!leaderboardMap[uid]) {
-          leaderboardMap[uid] = {
-            uid,
-            username,
-            totalPoints: 0,
-            trashThrown: 0
+        const leaderboard = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data();
+          return {
+            uid: data.uid,
+            username: data.username || 'Unknown User',
+            totalPoints: data.totalPoints ?? 0,
+            trashThrown: data.trashThrown ?? 0,
           };
-        }
+        });
 
-        leaderboardMap[uid].totalPoints += points;
-        leaderboardMap[uid].trashThrown += 1;
-      });
+        setLeaderboardData(leaderboard);
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      }
+    };
 
-      const sorted = Object.values(leaderboardMap).sort((a, b) => b.totalPoints - a.totalPoints);
-      setLeaderboardData(sorted);
-      window.leaderboardData = sorted;
-    });
-
-    return () => unsubscribe();
-  }, []);*/
-
-  // dummy data for leaderboard (static)
-  const leaderboardData = [
-    {
-      uid: "uid_001",
-      username: "EcoWarrior",
-      totalPoints: 420,
-      trashThrown: 15
-    },
-    {
-      uid: "uid_002",
-      username: "GreenHero",
-      totalPoints: 380,
-      trashThrown: 14
-    },
-    {
-      uid: "uid_003",
-      username: "CleanCityKid",
-      totalPoints: 335,
-      trashThrown: 12
-    },
-    {
-      uid: "uid_004",
-      username: "PlanetSaver",
-      totalPoints: 290,
-      trashThrown: 11
-    },
-    {
-      uid: "uid_005",
-      username: "RecyclePro",
-      totalPoints: 245,
-      trashThrown: 9
-    },
-    {
-      uid: "uid_006",
-      username: "TrashBuster",
-      totalPoints: 200,
-      trashThrown: 8
-    },
-    {
-      uid: "uid_007",
-      username: "NatureNinja",
-      totalPoints: 165,
-      trashThrown: 7
-    },
-    {
-      uid: "uid_008",
-      username: "CleanSweep",
-      totalPoints: 130,
-      trashThrown: 5
-    },
-    {
-      uid: "uid_009",
-      username: "GreenSteps",
-      totalPoints: 95,
-      trashThrown: 4
-    },
-    {
-      uid: "uid_010",
-      username: "Unknown User",
-      totalPoints: 60,
-      trashThrown: 2
-    }
-  ];
+    fetchLeaderboard();
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -745,7 +675,6 @@ function Homepage() {
               </div>
             </div>
           </div>
-
 
           <div className="container snap-child m-0 d-flex justify-content-center align-item-center mw-100" style={{ backgroundColor: "#FEFBEB" }} id='download' ref={downloadRef}>
             <div className="py-5 min-vh-100 d-flex flex-column justify-content-center">
