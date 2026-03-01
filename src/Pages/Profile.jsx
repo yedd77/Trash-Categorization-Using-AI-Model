@@ -1,11 +1,11 @@
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, use, useRef } from 'react'
 import "bootstrap/dist/css/bootstrap.min.css"
 import Navbar from '../Components/Navbar/Navbar'
 import { auth } from '../firebase'
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useNavigate, Link } from 'react-router-dom'
 import { getAuth, updateProfile, onAuthStateChanged } from 'firebase/auth'
-import { getFirestore, collection, query, where, orderBy, limit, doc, getDoc, getDocs, Timestamp, addDoc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getFirestore, collection, query, where, orderBy, limit, doc, getDoc, getDocs, Timestamp, addDoc, updateDoc, serverTimestamp, setDoc, getCountFromServer } from "firebase/firestore";
 import './Profile.css'
 import { getApp } from 'firebase/app';
 import QRScanner from '../Components/QRScanner.jsx';
@@ -39,180 +39,109 @@ const Profile = () => {
     const [totalRankings, setTotalRankings] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+    const hasFetched = useRef(false);
 
-    // function to fetch points data like claimed, pending, and expired points
-    // then will be dispyed in counter cards
-    // also fetches the time left for the earliest pending point if it exists
-    // also fetches data for claimed points to display in a table
+    // Consolidated auth listener - sets user state and immediate properties
     useEffect(() => {
-        const db = getFirestore();
-        const auth = getAuth();
-
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
+        const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                setOldUsername(currentUser.displayName || "No username set");
+                
+                // Check for admin claim
                 try {
-                    // Fetching claimed points
-                    const pointsQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", true)
-                    );
-                    const pointsSnapshot = await getDocs(pointsQuery);
-                    let claimed = 0;
-                    pointsSnapshot.forEach((doc) => {
-                        claimed += doc.data().points || 0;
-                    });
-                    setClaimedPoints(claimed);
-
-                    // Fetching expired points
-                    const pendingQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", false),
-                        where("expiresAt", ">", new Date())
-                    );
-                    const pendingSnapshot = await getDocs(pendingQuery);
-                    let pending = 0;
-                    pendingSnapshot.forEach((doc) => {
-                        pending += doc.data().points || 0;
-                    });
-                    setPendingPoints(pending);
-
-                    // Fetching expired points
-                    const expiredQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", false),
-                        where("isExpired", "==", true)
-                    );
-                    const expiredSnapshot = await getDocs(expiredQuery);
-                    let expired = 0;
-                    expiredSnapshot.forEach((doc) => {
-                        expired += doc.data().points || 0;
-                    });
-                    setExpiredPoints(expired);
-
-                    // Fetching earliest pending point
-                    // This will find the earliest pending point that has not expired
-                    const earliestPendingQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", false),
-                        where("expiresAt", ">", new Date()),
-                        orderBy("expiresAt", "asc"),
-                        limit(1)
-                    );
-
-                    const snapshot = await getDocs(earliestPendingQuery);
-
-                    if (!snapshot.empty) {
-                        const doc = snapshot.docs[0];
-                        const data = doc.data();
-                        setEarliestPoint(data);
-
-                        const expiresAt = data.expiresAt.toDate();
-                        const now = new Date();
-                        const timeLeftMs = expiresAt - now;
-
-                        if (timeLeftMs > 0) {
-                            const minutes = Math.floor(timeLeftMs / (1000 * 60)) % 60;
-                            const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
-                            setTimeLeft(`${hours} hour(s) ${minutes} minute(s)`);
-                        } else {
-                            setTimeLeft("Already expired");
-                        }
-                    } else {
-                        setEarliestPoint(null);
-                        setTimeLeft("No pending points");
-                    }
+                    const tokenResult = await currentUser.getIdTokenResult();
+                    setIsAdmin(!!tokenResult.claims.admin);
                 } catch (error) {
-                    console.error("Error fetching user point data:", error);
+                    setIsAdmin(false);
+                    console.error("Error checking admin status:", error);
                 }
             } else {
-                console.log("User not logged in.");
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        const db = getFirestore();
-        const auth = getAuth();
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const fetchClaimedData = async () => {
-                    const pointsDataQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", true)
-                    );
-
-                    const pointsDataSnapshot = await getDocs(pointsDataQuery);
-
-                    const dataWithStationNames = await Promise.all(
-                        pointsDataSnapshot.docs.map(async (docSnap) => {
-                            const data = docSnap.data();
-                            const stationRef = doc(db, "Station", data.claimedBin);
-                            const stationDoc = await getDoc(stationRef);
-                            const stationName = stationDoc.exists() ? stationDoc.data().stationName : "Unknown";
-
-                            const claimedAt = data.claimedAt?.toDate?.() || new Date();
-                            const dateStr = claimedAt.toLocaleDateString();
-                            const timeStr = claimedAt.toLocaleTimeString();
-
-                            return {
-                                stationName,
-                                itemType: data.itemType,
-                                date: dateStr,
-                                time: timeStr,
-                                points: data.points || 0,
-                            };
-                        })
-                    );
-
-                    setClaimedData(dataWithStationNames);
-                };
-
-                fetchClaimedData();
-            }
-        });
-        return () => unsubscribe();
-    }, [user]);
-
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = claimedData.slice(indexOfFirstItem, indexOfLastItem);
-
-    const totalPages = Math.ceil(claimedData.length / itemsPerPage);
-    const pageNumbers = [];
-    const visiblePageCount = 5;
-
-    let startPage = Math.max(1, currentPage - Math.floor(visiblePageCount / 2));
-    let endPage = startPage + visiblePageCount - 1;
-
-    if (endPage > totalPages) {
-        endPage = totalPages;
-        startPage = Math.max(1, endPage - visiblePageCount + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-    }
-
-    // function to get the username of the user from firebase auth
-    useEffect(() => {
-
-        const auth = getAuth();
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setOldUsername(user.displayName || "No username set");
-            } else {
+                setUser(null);
+                setIsAdmin(false);
+                setOldUsername("No username set");
                 console.log("User is not authenticated.");
                 navigate("/");
             }
         });
-    }, []);
+        
+        return () => unsubscribe();
+    }, [navigate]);
+
+    // Fetch points data when user changes
+    useEffect(() => {
+        if (!user) return;
+        
+        const fetchPointsData = async () => {
+            try {
+                const db = getFirestore();
+                const q = query(
+                    collection(db, "Points"),
+                    where("uid", "==", user.uid)
+                );
+
+                const snapshot = await getDocs(q);
+
+                let claimed = 0;
+                let pending = 0;
+                let expired = 0;
+                let earliest = null;
+
+                const now = new Date();
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const points = data.points || 0;
+                    const expiresAt = data.expiresAt?.toDate?.();
+
+                    if (data.isClaimed) {
+                        claimed += points;
+                        return;
+                    }
+                    if (data.isExpired) {
+                        expired += points;
+                        return;
+                    }
+                    if (expiresAt && expiresAt < now) {
+                        pending += points;
+
+                        if (!earliest || expiresAt < earliest.expiresAt?.toDate?.()) {
+                            earliest = data;
+                        }
+                    }
+                });
+
+                setClaimedPoints(claimed);
+                setPendingPoints(pending);
+                setExpiredPoints(expired);
+
+                if (earliest) {
+                    setEarliestPoint(earliest);
+
+                    const expiresAt = earliest.expiresAt.toDate();
+                    const timeLeftMs = expiresAt - now;
+
+                    if (timeLeftMs > 0) {
+                        const minutes = Math.floor(timeLeftMs / (1000 * 60)) % 60;
+                        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+                        setTimeLeft(`${hours} hour(s) ${minutes} minute(s)`);
+                    } else {
+                        setTimeLeft("Already expired");
+                    }
+                } else {
+                    setEarliestPoint(null);
+                    setTimeLeft("No pending points");
+                }
+
+            } catch (error) {
+                console.error("Error fetching user point data:", error);
+            }
+        };
+        
+        fetchPointsData();
+    }, [user]);
+
+
 
     //Function to handle username change
     const handleUsernameChange = async (newUsername) => {
@@ -334,27 +263,7 @@ const Profile = () => {
         }
     };
 
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                setUser(user);
-                // Check for admin claim
-                try {
-                    const tokenResult = await user.getIdTokenResult();
-                    setIsAdmin(!!tokenResult.claims.admin);
-                } catch (error) {
-                    setIsAdmin(false);
-                    console.error("Error checking admin status:", error);
-                }
-            } else {
-                setUser(null);
-                setIsAdmin(false);
-                console.log("User is not authenticated.");
-                navigate("/");
-            }
-        });
-        return () => unsubscribe();
-    }, [navigate]);
+
 
     const callVerifyScan = async (tagUID, binID) => {
         const functions = getFunctions(getApp(), "us-central1");
@@ -386,16 +295,14 @@ const Profile = () => {
                         return;
                     }
 
-                    querySnapshot.forEach(async (doc) => {
-                        const docRef = doc.ref;
-                        await Promise.all(querySnapshot.docs.map(doc =>
-                            updateDoc(docRef, {
-                                isClaimed: true, // Mark the points as claimed
-                                claimedAt: Timestamp.now(), // Set the claimed timestamp
-                                claimedBin: binID // Store the bin ID where the points were claimed
-                            })
-                        ));
-                    });
+                    const updatePromises = querySnapshot.docs.map(doc =>
+                        updateDoc(doc.ref, {
+                            isClaimed: true, // Mark the points as claimed
+                            claimedAt: Timestamp.now(), // Set the claimed timestamp
+                            claimedBin: binID // Store the bin ID where the points were claimed
+                        })
+                    );
+                    await Promise.all(updatePromises);
                     setVerifyStatus("Success");
                     setVerifyDescription("Scan verified successfully. Points awarded.");
                 } catch (err) {
@@ -450,59 +357,49 @@ const Profile = () => {
         setShowLogoutModal(true);
     }
 
-    // Function to state the ranking of the user
+    // Fetch user ranking when user changes
     useEffect(() => {
-        const auth = getAuth();
-
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (!user) return;
-
-            const db = getFirestore();
-            const q = query(collection(db, 'Points'), where("isClaimed", "==", true));
-            const snapshot = await getDocs(q);
-
-            const leaderboardMap = {};
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const uid = data.uid;
-                const points = data.points || 0;
-
-                if (!leaderboardMap[uid]) {
-                    leaderboardMap[uid] = 0;
-                }
-
-                leaderboardMap[uid] += points;
-            });
-
-            const sorted = Object.entries(leaderboardMap)
-                .sort((a, b) => b[1] - a[1])
-                .map(([uid]) => uid);
-
-            const rank = sorted.indexOf(user.uid);
-            if (rank !== -1) {
-                setRanking(rank + 1);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-
-    useEffect(() => {
-        (async () => {
+        if (!user) return;
+        
+        const fetchRank = async () => {
             try {
-                const res = await fetch(
-                    "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
-                ); 12
+                const db = getFirestore();
+                const userRef = doc(db, "Leaderboard", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) return;
 
-                const data = await res.json();
-                setTotalRankings(data.userCount);
-            } catch (err) {
-                setError("Error fetching user count.");
+                const userPoints = userSnap.data().totalPoints;
+
+                const q = query(
+                    collection(db, "Leaderboard"),
+                    where("totalPoints", ">", userPoints)
+                );
+
+                const countSnap = await getCountFromServer(q);
+                setRanking(countSnap.data().count + 1);
+            } catch (error) {
+                console.error("Error fetching ranking:", error);
             }
-        })();
+        };
+
+        fetchRank();
+    }, [user]);
+
+    // Get total user count for ranking display
+    useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
+        const fetchCount = async () => {
+            const db = getFirestore();
+            const coll = collection(db, "Leaderboard");
+            const snapshot = await getCountFromServer(coll);
+            setTotalRankings(snapshot.data().count);
+        };
+
+        fetchCount();
     }, []);
+
 
     return (
         <>
@@ -578,8 +475,7 @@ const Profile = () => {
                                 <div className="col-4 d-flex align-items-stretch">
                                     <div className="card border-0 rounded-4 shadow-cs w-100">
                                         <div className="card-body text-center">
-                                              {/*<p className="fw-bold fs-3 mb-2 text-success">{claimedPoints.toLocaleString()}</p>*/}
-                                            <p className="fw-bold fs-3 mb-2 text-success">{543}</p>
+                                            <p className="fw-bold fs-3 mb-2 text-success">{claimedPoints.toLocaleString()}</p>
                                             <p className="fw-semibold">Claimed Points</p>
                                         </div>
                                     </div>
@@ -588,8 +484,7 @@ const Profile = () => {
                                 <div className="col-4 d-flex align-items-stretch">
                                     <div className="card border-0 rounded-4 shadow-cs w-100">
                                         <div className="card-body text-center">
-                                            {/*<p className="fw-bold fs-3 mb-2 text-warning">{pendingPoints}</p>*/}
-                                            <p className="fw-bold fs-3 mb-2 text-warning">{10}</p>
+                                            <p className="fw-bold fs-3 mb-2 text-warning">{pendingPoints}</p>
                                             <p className="fw-semibold">Pending Points</p>
                                         </div>
                                     </div>
@@ -598,14 +493,13 @@ const Profile = () => {
                                 <div className="col-4 d-flex align-items-stretch">
                                     <div className="card border-0 rounded-4 shadow-cs w-100">
                                         <div className="card-body text-center">
-                                            {/*<p className="fw-bold fs-3 mb-2 text-danger">{expiredPoints}</p>*/}
-                                            <p className="fw-bold fs-3 mb-2 text-danger">{61}</p>
+                                            <p className="fw-bold fs-3 mb-2 text-danger">{expiredPoints}</p>
                                             <p className="fw-semibold">Expired Points</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/*
+
                                 {pendingPoints > 0 && (
                                     <div className="col-12">
                                         <div className="card border-0 rounded-4 shadow-cs">
@@ -632,13 +526,12 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 )}
-                                */}
                                 <div className="col-12 mb-2">
                                     <div className="card border-0 rounded-4 shadow-cs">
                                         <div className="card-body">
                                             <p className="fw-semibold">Current Ranking</p>
                                             <p className="fw-regular">
-                                                You are currently ranked <span className="fw-bold">{1}</span> out of <span className="fw-bold">{540}</span> users.
+                                                You are currently ranked <span className="fw-bold">{ranking}</span> out of <span className="fw-bold">{totalRankings}</span> users.
                                             </p>
                                             {/*
                                             <p className="fw-regular">
@@ -648,59 +541,6 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 </div>
-                                {/*
-                                <div className="col-12 mb-2">
-                                    <div className="card border-0 rounded-4 shadow-cs">
-                                        <div className="card-body">
-                                            <p className="fw-semibold mb-2">Claimed Points</p>
-                                            <div className="table-responsive">
-                                                <table className="table table-striped table text-center" style={{ width: '100%' }}>
-                                                    <thead>
-                                                        <tr>
-                                                            <th scope="col">No</th>
-                                                            <th scope="col">Station Name</th>
-                                                            <th scope="col">Item thrown</th>
-                                                            <th scope="col">Date</th>
-                                                            <th scope="col">Time</th>
-                                                            <th scope="col">Point Given</th>
-                                                        </tr>
-                                                    </thead>
-                                                    
-                                                    <tbody>
-                                                        {currentItems.map((data, index) => (
-                                                            <tr key={index}>
-                                                                <td>{indexOfFirstItem + index + 1}</td>
-                                                                <td>{data.stationName}</td>
-                                                                <td>{data.itemType}</td>
-                                                                <td>{data.date}</td>
-                                                                <td>{data.time}</td>
-                                                                <td>{data.points}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                    
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div className="card-footer clearfix">
-                                            <ul className="pagination pagination-sm m-0 float-right">
-                                                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                                                    <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>«</button>
-                                                </li>
-
-                                                {pageNumbers.map(page => (
-                                                    <li key={page} className={`page-item ${currentPage === page ? "active" : ""}`}>
-                                                        <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
-                                                    </li>
-                                                ))}
-
-                                                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                                                    <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>»</button>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>*/}
                             </div>
                         </div>
                         <div className="col-12 col-sm-6">
