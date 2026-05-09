@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import './Navbar.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Link } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase';
+import { doc } from 'firebase/firestore';
 
 function getIsPWA() {
   if (document.referrer.startsWith('android-app://')) return true;
@@ -21,26 +22,28 @@ const Navbar = () => {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
-  // Check if app is running in standalone mode (PWA)
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    // Check if app is running in standalone mode (PWA)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-  if (isStandalone) {
-    setIsPWAInstalled(true); // Running as installed PWA
-  } else {
-    setIsPWAInstalled(false); // Running in normal browser (mobile or desktop)
-  }
+    if (isStandalone) {
+      setIsPWAInstalled(true); // Running as installed PWA
+    } else {
+      setIsPWAInstalled(false); // Running in normal browser (mobile or desktop)
+    }
 
-  // Listen for install event (optional)
-  const onAppInstalled = () => {
-    setIsPWAInstalled(true);
-  };
+    // Listen for install event (optional)
+    const onAppInstalled = () => {
+      setIsPWAInstalled(true);
+    };
 
-  window.addEventListener('appinstalled', onAppInstalled);
+    window.addEventListener('appinstalled', onAppInstalled);
 
-  return () => window.removeEventListener('appinstalled', onAppInstalled);
-}, []);
+    return () => window.removeEventListener('appinstalled', onAppInstalled);
+  }, []);
 
   useEffect(() => {
     setIsPWA(getIsPWA());
@@ -70,6 +73,16 @@ const Navbar = () => {
     window.addEventListener('beforeinstallprompt', handler);
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => { document.removeEventListener('mousedown', handleClickOutside); };
   }, []);
 
   return (
@@ -106,11 +119,52 @@ const Navbar = () => {
 
           {!loading && (
             user ? (
-              <li className="nav-item">
-                <Link to="/profile" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
-                  <i className="bi bi-person-fill mx-2" style={{ color: "#6b6968" }}></i>
-                  {user.displayName || 'User'}
-                </Link>
+              <li className="nav-item user-dropdown-wrapper" ref={dropdownRef}>
+                <button
+                  className="user-dropdown-btn nav-link"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                >
+                  <i className="bi bi-person-fill user-icon" />
+                  <span className="user-name">{user.displayName || "User"}</span>
+                  <i className={`bi bi-chevron-down user-chevron ${dropdownOpen ? "open" : ""}`} />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="user-dropdown-menu">
+
+                    <div className="dropdown-header">
+                      <div className="dropdown-header-name">{user.displayName || "User"}</div>
+                      <div className="dropdown-header-email">{user.email}</div>
+                    </div>
+
+                    {[
+                      { to: "/profile", icon: "bi-person", label: "Profile settings" },
+                      { to: "/points", icon: "bi-star", label: "Point information" },
+                      { to: "/mission", icon: "bi-flag", label: "Mission" },
+                    ].map(({ to, icon, label }) => (
+                      <Link
+                        key={to}
+                        to={to}
+                        className="dropdown-item-link"
+                        onClick={() => { setDropdownOpen(false); closeNavbar(); }}
+                      >
+                        <i className={`bi ${icon} dropdown-icon`} />
+                        {label}
+                      </Link>
+                    ))}
+
+                    <div className="dropdown-signout-wrapper">
+                      <button
+                        className="dropdown-signout-btn"
+                        onClick={() => { /* your signOut() here */ setDropdownOpen(false); }}
+                      >
+                        <i className="bi bi-box-arrow-right dropdown-icon" />
+                        Sign out
+                      </button>
+                    </div>
+
+                  </div>
+                )}
               </li>
             ) : (
               <Link to="/signin" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>

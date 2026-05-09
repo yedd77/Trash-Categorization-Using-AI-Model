@@ -20,7 +20,8 @@ import Users from './Pages/Admin/Users'
 import Leaderboard from './Pages/Admin/Leaderboard'
 import Point from './Pages/Admin/Point'
 import InProgress from './Pages/InProgress'
-
+import Points from './Pages/Points'
+import Mission from './Pages/Mission'
 
 function App() {
   return (
@@ -34,6 +35,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPass />} />
         <Route path="/in-progress" element={<InProgress />} />
+        <Route path="/points" element={<Points />} />
+        <Route path="/mission" element={<Mission />} />
 
         {/* Admin Route */}
         <Route path="/admin/dashboard" 

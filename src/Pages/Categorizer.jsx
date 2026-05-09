@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../Components/Navbar/Navbar';
 import { useDropzone } from 'react-dropzone';
 import './Categorizer.css';
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from 'firebase/app';
 import { getFirestore, Timestamp, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -52,6 +51,9 @@ const Categorizer = () => {
 
   // Set up Firebase functions and Firestore
   const auth = getAuth();
+
+  //TESTING TODO
+  const co2amount = 0.5; // Example CO2 saved amount for testing
 
   emailjs.init(import.meta.env.VITE_EMAIL_PUBLIC_KEY);
 
@@ -371,9 +373,9 @@ const Categorizer = () => {
         points = typeTrash;
       } else if (itemScanned == "Paper") {
         points = typePaper;
-      } else if (itemScanned == "Plastic") {
+      } else if (itemScanned == "Plastic or Metal") {
         points = typePlastic;
-      } else if (itemScanned == "Metal or glass") {
+      } else if (itemScanned == "Glass") {
         points = typeMetalGlass;
       } else {
         points = 0;
@@ -481,7 +483,7 @@ const Categorizer = () => {
         setShowNfcOverlay(false);
       };
     } catch (error) {
-      console.error("NFC scan failed:", err);
+      console.error("NFC scan failed:", error);
       alert("Unable to start NFC scan. Make sure NFC is enabled.");
     }
   };
@@ -517,66 +519,128 @@ const Categorizer = () => {
     callVerifyScan(tagUID, binID);
   };
 
-  // This function is called from handleNFCScan after a successful NFC scan
-  // Then it will call the Firebase function "verifyScan" with the tagUID and binID as parameters
-  // The function will verify the scan and update the user's points in Firestore
-  // If the scan is successful, 
+  // This function is called from handleNFCScan or QR scan after a successful scan
+  // It directly updates the user's pending points to claimed status in Firestore
+  // and updates user stats without calling a backend function
   const callVerifyScan = async (tagUID, binID) => {
-    const functions = getFunctions(getApp(), "us-central1");
-    const verifyScan = httpsCallable(functions, "verifyScan");
-
+    setShowVerifyProcess(true);
     setVerifyStatus("Pending");
-    setVerifyDescription("Please wait while we verify your scan.");
+    setVerifyDescription("Please wait while we process your scan...");
 
     try {
-      const result = await verifyScan({ tagUID, binID });
+      const db = getFirestore();
+      const user = auth.currentUser;
 
-      if (result.data.success) {
-        // update record of user points in Firestore
-        const db = getFirestore();
-        const user = auth.currentUser;
-
-        try {
-          const pointsQuery = query(
-            collection(db, "Points"),
-            where("uid", "==", user.uid),
-            where("isClaimed", "==", false),
-            where("isExpired", "==", false),
-            where("expiresAt", ">", Timestamp.now())
-          );
-          const querySnapshot = await getDocs(pointsQuery);
-
-          if (querySnapshot.empty) {
-            console.log("No pending points found for user.");
-            return;
-          }
-
-          querySnapshot.forEach(async (doc) => {
-            const docRef = doc.ref;
-            await Promise.all(querySnapshot.docs.map(doc =>
-              updateDoc(docRef, {
-                isClaimed: true, // Mark the points as claimed
-                claimedAt: Timestamp.now(), // Set the claimed timestamp
-                claimedBin: binID // Store the bin ID where the points were claimed
-              })
-            ));
-          });
-          setVerifyStatus("Success");
-          setVerifyDescription("Scan verified successfully. Points have been credited.");
-        } catch (err) {
-          console.error("Error updating points:", err.message);
-          alert("Error updating points: " + err.message);
-        }
-
-      } else {
-        alert(err.message);
+      if (!user) {
+        throw new Error("User not authenticated");
       }
 
-      setShowNfcOverlay(false); // Hide NFC overlay after scan
+      // Fetch pending points for this user
+      const pointsQuery = query(
+        collection(db, "Points"),
+        where("uid", "==", user.uid),
+        where("isClaimed", "==", false),
+        where("isExpired", "==", false),
+        where("expiresAt", ">", Timestamp.now())
+      );
+      const querySnapshot = await getDocs(pointsQuery);
+
+      if (querySnapshot.empty) {
+        setVerifyStatus("No Points Found");
+        setVerifyDescription("You don't have any pending points to claim. Classify more items first!");
+        setShowNfcOverlay(false);
+        return;
+      }
+
+      const itemType = querySnapshot.docs[0].data().itemType;
+
+      // Update all pending points to claimed
+      const updatePromises = querySnapshot.docs.map((doc) =>
+        updateDoc(doc.ref, {
+          isClaimed: true,
+          claimedAt: Timestamp.now(),
+          claimedBin: binID,
+          claimedTag: tagUID,
+        })
+      );
+
+      await Promise.all(updatePromises);
+
+      // Update user stats
+      await setUserStats(user.uid, itemTypes);
+
+      setVerifyStatus("Success");
+      setVerifyDescription(
+        `Scan verified successfully! ${querySnapshot.size} point(s) claimed.`
+      );
+      setShowNfcOverlay(false);
     } catch (err) {
-      console.error("Error verifying NFC scan:", err);
-      alert("Error verifying NFC scan: " + err.message);
+      console.error("Error verifying scan:", err);
+      setVerifyStatus("Error");
+      setVerifyDescription(`Verification failed: ${err.message}`);
+      setShowNfcOverlay(false);
     }
+  };
+
+  // Function to set the streak number based on the user's recycling activity
+  const setUserStats = async (uid, itemTypes) => {
+    if (!uid) return;
+
+    const db = getFirestore();
+    const statsRef = doc(db, "userStats", uid);
+    const statsSnap = await getDoc(statsRef);
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+    //calculate co2 saved based on the item type and add to total co2 saved in stats
+    const co2PerItem = {
+      "Paper": 0.005,
+      "Plastic or Metal": 0.019,
+      "Glass": 0.3,
+    };
+
+    // If user stats document doesn't exist, create it with initial values
+    if (!statsSnap.exists()) {
+      await setDoc(statsRef, {
+        currentStreak: 1,
+        lastDisposeDate: today,
+        totalItemsRecycled: itemCount,
+        co2Saved: co2Amount,
+        createdAt: serverTimestamp(),
+      });
+
+      return;
+    }
+    const stats = statsSnap.data();
+
+    let newStreak = stats.currentStreak || 0;
+
+    if (stats.lastDisposeDate === today) {
+      // User already disposed today
+      // Streak should not increase again
+      newStreak = stats.currentStreak || 1;
+    } else if (stats.lastDisposeDate === yesterday) {
+      // User disposed yesterday, continue streak
+      newStreak += 1;
+    } else {
+      // User missed at least one day, reset streak
+      newStreak = 1;
+    }
+
+    await updateDoc(statsRef, {
+      currentStreak: newStreak,
+      lastDisposeDate: today,
+
+      totalItemsRecycled: (stats.totalItemsRecycled || 0) + itemCount,
+
+      co2Saved: Number(((stats.co2Saved || 0) + co2Amount).toFixed(3)),
+
+      updatedAt: serverTimestamp(),
+    });
+
   };
 
   // Utility function to capitalize the first letter of a string
@@ -1002,7 +1066,7 @@ const Categorizer = () => {
                           <div className="col-10">
 
                             <div className="form-floating">
-                              <input type="email" className="form-control form-control-sm border-0 border-bottom" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                              <input type="email" className="form-control form-control-sm border-0 border-bottom" value={email} onChange={(e) => setEmail(e.target.value)} required />
                               <label htmlFor="email-input" className="text-muted" style={{ fontSize: "14px" }}>
                                 Your Email
                               </label>
@@ -1045,13 +1109,8 @@ const Categorizer = () => {
                             type="button"
                             style={{ color: 'rgb(128, 188, 68)', border: '2px solid rgb(128, 188, 68)', }}
                             onClick={() => {
- 
-                              // go to in progress page
-                              window.location.href = '/in-progress';
-                              /* TODO
                               setShowVerifyProcess(true);
                               setShowVerifyModal(true);
-                              */
                             }}>
                             <i className="bi bi-patch-check me-2"></i> Verify Location
                           </button>

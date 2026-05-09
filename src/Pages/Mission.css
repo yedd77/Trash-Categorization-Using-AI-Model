@@ -1,0 +1,58 @@
+.stat-card {
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  .stat-icon-wrap {
+    width: 36px;
+    flex-shrink: 0;
+  }
+
+  .mission-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .co2-icon {
+    color: #43a047;
+    font-size: 12px;
+    line-height: 24px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    width: 90px;
+    flex-shrink: 0;
+  }
+
+  .stat-value.streak  { color: #f57c00; }
+  .stat-value.co2     { color: #43a047; }
+  .stat-value.recycle { color: #e53935; }
+
+  .share-btn {
+    color: #777;
+  }
+  .share-btn:hover { color: #333; }
+
+  .challenge-card {
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  .day-dot {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+  }
+
+  .active-day {
+    font-weight: 700;
+    color: #f57c00;
+  }
+
+  .day-dot.done    { background: #80BC44; }
+  .day-dot.missed  { background: #e74c3c; }
+  .day-dot.current { background: #f0ad4e; }
+  .day-dot.empty   { background: #d0d0d0; }

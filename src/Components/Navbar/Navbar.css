@@ -1,10 +1,185 @@
-.btn-signin{
+  .btn-signin {
     background-color: #80BC44 !important;
     color: white !important;
-    padding: 8px 35px  !important;
+    padding: 8px 35px !important;
     text-decoration: none !important;
-}
+  }
 
-li.nav-item::marker {
-  display: none !important;
+  li.nav-item::marker {
+    display: none !important;
+  }
+
+  .user-dropdown-wrapper {
+    position: relative;
+  }
+
+  .user-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    border: none;
+    background: transparent;
+  }
+
+  .user-dropdown-btn .user-icon {
+    color: #6b6968;
+    margin: 0 8px;
+  }
+
+  .user-dropdown-btn .user-name {
+    color: #212529;
+    font-size: 14px;
+  }
+
+  .user-chevron {
+    font-size: 11px;
+    color: #6b6968;
+    transition: transform 0.2s;
+  }
+
+  .user-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .user-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 220px;
+    background: white;
+    border: 0.5px solid #e5e5e5;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    overflow: hidden;
+  }
+
+  .dropdown-header {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid #f0f0f0;
+  }
+
+  .dropdown-header-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111;
+    text-align: left;
+  }
+
+  .dropdown-header-email {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+    text-align: left;
+  }
+
+  .dropdown-item-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    font-size: 14px;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .dropdown-item-link:hover {
+    background: #f7f7f7;
+  }
+
+  .dropdown-item-link .dropdown-icon {
+    font-size: 15px;
+    color: #6b6968;
+    width: 18px;
+  }
+
+  .dropdown-signout-wrapper {
+    border-top: 0.5px solid #f0f0f0;
+  }
+
+  .dropdown-signout-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 16px;
+    font-size: 14px;
+    color: #c0392b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .dropdown-signout-btn:hover {
+    background: #fff5f5;
+  }
+
+  .dropdown-signout-btn .dropdown-icon {
+    font-size: 15px;
+    width: 18px;
+  }
+
+ @media (max-width: 991px) {
+  .user-dropdown-wrapper {
+    width: 100%;
+    list-style: none;
+  }
+
+  .user-dropdown-btn {
+    width: 100%;
+    padding: 0.5rem 0 !important;
+    justify-content: flex-start !important;
+    text-align: left;
+  }
+
+  .user-dropdown-btn .user-name {
+    color: #212529 !important;
+  }
+
+  .user-dropdown-menu {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    min-width: unset !important;
+    width: 100% !important;
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .dropdown-header {
+    display: none !important;
+  }
+
+  .dropdown-item-link {
+    padding: 8px 0 8px 34px !important;
+    font-size: 14px !important;
+    color: #444 !important;
+    background: transparent !important;
+  }
+
+  .dropdown-item-link:hover,
+  .dropdown-item-link:focus {
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .dropdown-signout-wrapper {
+    border-top: none !important;
+  }
+
+  .dropdown-signout-btn {
+    padding: 8px 0 8px 34px !important;
+    font-size: 14px !important;
+  }
+
+  .dropdown-signout-btn:hover,
+  .dropdown-signout-btn:focus {
+    background: transparent !important;
+  }
 }

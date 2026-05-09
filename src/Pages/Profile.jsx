@@ -47,7 +47,7 @@ const Profile = () => {
             if (currentUser) {
                 setUser(currentUser);
                 setOldUsername(currentUser.displayName || "No username set");
-                
+
                 // Check for admin claim
                 try {
                     const tokenResult = await currentUser.getIdTokenResult();
@@ -64,84 +64,9 @@ const Profile = () => {
                 navigate("/");
             }
         });
-        
+
         return () => unsubscribe();
     }, [navigate]);
-
-    // Fetch points data when user changes
-    useEffect(() => {
-        if (!user) return;
-        
-        const fetchPointsData = async () => {
-            try {
-                const db = getFirestore();
-                const q = query(
-                    collection(db, "Points"),
-                    where("uid", "==", user.uid)
-                );
-
-                const snapshot = await getDocs(q);
-
-                let claimed = 0;
-                let pending = 0;
-                let expired = 0;
-                let earliest = null;
-
-                const now = new Date();
-
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const points = data.points || 0;
-                    const expiresAt = data.expiresAt?.toDate?.();
-
-                    if (data.isClaimed) {
-                        claimed += points;
-                        return;
-                    }
-                    if (data.isExpired) {
-                        expired += points;
-                        return;
-                    }
-                    if (expiresAt && expiresAt < now) {
-                        pending += points;
-
-                        if (!earliest || expiresAt < earliest.expiresAt?.toDate?.()) {
-                            earliest = data;
-                        }
-                    }
-                });
-
-                setClaimedPoints(claimed);
-                setPendingPoints(pending);
-                setExpiredPoints(expired);
-
-                if (earliest) {
-                    setEarliestPoint(earliest);
-
-                    const expiresAt = earliest.expiresAt.toDate();
-                    const timeLeftMs = expiresAt - now;
-
-                    if (timeLeftMs > 0) {
-                        const minutes = Math.floor(timeLeftMs / (1000 * 60)) % 60;
-                        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
-                        setTimeLeft(`${hours} hour(s) ${minutes} minute(s)`);
-                    } else {
-                        setTimeLeft("Already expired");
-                    }
-                } else {
-                    setEarliestPoint(null);
-                    setTimeLeft("No pending points");
-                }
-
-            } catch (error) {
-                console.error("Error fetching user point data:", error);
-            }
-        };
-        
-        fetchPointsData();
-    }, [user]);
-
-
 
     //Function to handle username change
     const handleUsernameChange = async (newUsername) => {
@@ -194,471 +119,77 @@ const Profile = () => {
         return false;
     }
 
-    //To have this function active, the user must be authenticated and the app must be running in PWA mode
-    // This function is triggered when the user clicks the "Scan for rewards" button
-    //it well set the showNfcOverlay state to true, indicating that the NFC scan is ready
-    //it then will read the NFC tag using the NDEFReader API
-    // If the NFC tag data is valid, it will decode the data and extract the tagUID and binID from the URL
-    // then it will call the callVerifyScan function to verify the scan
-    const handleNFCScan = async () => {
-        console.log("NFC scan initiated");
-        // Check if NFC is supported
-        if (!("NDEFReader" in window)) {
-            alert("NFC is not supported on this device.");
-            return;
-        }
-
-        // Show NFC overlay
-        setShowNfcOverlay(true); // set on NFC when its ready to write
-
-        try {
-            const ndef = new window.NDEFReader(); // Create a new NDEFReader instance
-            await ndef.scan(); // Start scanning for NFC tags
-
-            // Set up event listeners for NFC tag reading
-            ndef.onreading = (event) => {
-                // Create a TextDecoder to decode the NFC tag data
-                const decoder = new TextDecoder();
-
-                // loop through the records in the NFC message
-                for (const record of event.message.records) {
-                    // Check if the record is of type text or URL
-                    if (record.recordType === "text" || record.recordType === "url") {
-                        // Decode the record data
-                        const urlData = decoder.decode(record.data);
-
-                        // Check if the data is a valid URL
-                        try {
-                            const parseURL = new URL(urlData);
-                            const tagUID = parseURL.searchParams.get("tagUID");
-                            const binID = parseURL.searchParams.get("binID");
-
-                            if (!tagUID || !binID) {
-                                alert("Invalid NFC tag format.");
-                                setNfcError("Invalid NFC.");
-                                return;
-                            }
-
-                            // Call function to verify the scan
-                            setShowNfcOverlay(false);
-                            setShowVerifyModal(false);
-                            callVerifyScan(tagUID, binID);
-                            setSuccessfull("Scan successful!");
-                        } catch (err) {
-                            // catch any errors in URL parsing
-                            setNfcError("Malformed NFC tag data.");
-                            setShowNfcOverlay(false);
-                        }
-                    }
-                }
-            };
-            ndef.onerror = (event) => {
-                setNfcError("NFC scan failed. Please try again.");
-                console.error("NFC scan error: ", event);
-                setShowNfcOverlay(false);
-            };
-        } catch (error) {
-            console.error("NFC scan failed:", err);
-            alert("Unable to start NFC scan. Make sure NFC is enabled.");
-        }
-    };
-
-
-
-    const callVerifyScan = async (tagUID, binID) => {
-        const functions = getFunctions(getApp(), "us-central1");
-        const verifyScan = httpsCallable(functions, "verifyScan");
-
-        setVerifyStatus("Pending");
-        setVerifyDescription("Please wait while we verify your scan.");
-
-        try {
-            const result = await verifyScan({ tagUID, binID });
-
-            if (result.data.success) {
-                // update record of user points in Firestore
-                const db = getFirestore();
-                const user = auth.currentUser;
-
-                try {
-                    const pointsQuery = query(
-                        collection(db, "Points"),
-                        where("uid", "==", user.uid),
-                        where("isClaimed", "==", false),
-                        where("isExpired", "==", false),
-                        where("expiresAt", ">", Timestamp.now())
-                    );
-                    const querySnapshot = await getDocs(pointsQuery);
-
-                    if (querySnapshot.empty) {
-                        console.log("No pending points found for user.");
-                        return;
-                    }
-
-                    const updatePromises = querySnapshot.docs.map(doc =>
-                        updateDoc(doc.ref, {
-                            isClaimed: true, // Mark the points as claimed
-                            claimedAt: Timestamp.now(), // Set the claimed timestamp
-                            claimedBin: binID // Store the bin ID where the points were claimed
-                        })
-                    );
-                    await Promise.all(updatePromises);
-                    setVerifyStatus("Success");
-                    setVerifyDescription("Scan verified successfully. Points awarded.");
-                } catch (err) {
-                    console.error("Error updating points:", err.message);
-                    alert("Error updating points: " + err.message);
-                }
-
-            } else {
-                alert(err.message);
-            }
-
-            setShowNfcOverlay(false); // Hide NFC overlay after scan
-        } catch (err) {
-            console.error("Error verifying NFC scan:", err);
-            alert("Error verifying NFC scan: " + err.message);
-        }
-    };
-
-    // Function to handle QR code scan// This function is called when the user clicks the "Scan QR Code" button
-    // It will set the showQRScanner state to true, indicating that the QR scanner should be displayed
-    const handleQRScan = () => {
-        setShowQRScanner(true); // Show QR Scanner
-    }
-
-    // This function is called from QRScanner component after a successful QR scan
-    // It will handle the scanned QR code data, extract tagUID and binID,
-    // and then call the callVerifyScan function to verify the scan
-    const handleScanResult = (data) => {
-
-        setShowQRScanner(false);
-        setShowVerifyModal(false);
-        if (!data || !data.startsWith("https://bin-buddy-v1.web.app/binVerify/")) {
-            alert("Invalid QR Code. Please scan a valid Bin Buddy QR Code.");
-            return;
-        }
-
-        // Extract tagUID and binID from the scanned QR code
-        const url = new URL(data);
-        const tagUID = url.searchParams.get("tagUID");
-        const binID = url.searchParams.get("binID");
-        if (!tagUID || !binID) {
-            alert("Invalid QR Code format. Missing tagUID or binID.");
-            return;
-        }
-
-        // Call the function to verify the scan with the extracted tagUID and binID
-        callVerifyScan(tagUID, binID);
-    };
-
     // Function to show the log out confirmation modal
     const showLogoutConfirmation = () => {
         setShowLogoutModal(true);
     }
 
-    // Fetch user ranking when user changes
-    useEffect(() => {
-        if (!user) return;
-        
-        const fetchRank = async () => {
-            try {
-                const db = getFirestore();
-                const userRef = doc(db, "Leaderboard", user.uid);
-                const userSnap = await getDoc(userRef);
-                if (!userSnap.exists()) return;
-
-                const userPoints = userSnap.data().totalPoints;
-
-                const q = query(
-                    collection(db, "Leaderboard"),
-                    where("totalPoints", ">", userPoints)
-                );
-
-                const countSnap = await getCountFromServer(q);
-                setRanking(countSnap.data().count + 1);
-            } catch (error) {
-                console.error("Error fetching ranking:", error);
-            }
-        };
-
-        fetchRank();
-    }, [user]);
-
-    // Get total user count for ranking display
-    useEffect(() => {
-        if (hasFetched.current) return;
-        hasFetched.current = true;
-
-        const fetchCount = async () => {
-            const db = getFirestore();
-            const coll = collection(db, "Leaderboard");
-            const snapshot = await getCountFromServer(coll);
-            setTotalRankings(snapshot.data().count);
-        };
-
-        fetchCount();
-    }, []);
-
-
     return (
         <>
-            {showNfcOverlay && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.7)',
-                    color: '#fff',
-                    zIndex: 9999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem'
-                }}>
-                    <div>
-                        <i className="bi bi-nfc" style={{ fontSize: '3rem' }}></i>
-                    </div>
-                    <div>
-                        Please scan your NFC tag now...
-                    </div>
-                    <div className="d-flex flex-column justify-content-center align-items-center">
-                        <button
-                            className="btn btn-secondary mt-3"
-                            onClick={() => {
-                                setShowNfcOverlay(false);
-                                setVerifyStatus(false);
-                            }}>
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            )}
-            {showQRScanner && (
-                <div className="d-flex justify-content-center align-items-center flex-column min-vh-100" style={{ minHeight: '90vh' }}>
-                    <QRScanner
-                        onSend={handleScanResult}
-                        onClose={() => {
-                            setShowQRScanner(false);
-                            setVerifyStatus(false);
-                        }} />
-                </div>
-            )}
             <Navbar />
             <div className="container-fluid" style={{ height: '100vh' }}>
-                {showVerifyProcess ? (
-                    <div className="d-flex flex-column" style={{ minHeight: '90vh' }}>
-                        <div className="d-flex flex-column flex-grow-1 pt-5">
-                            <div className="main-section container">
-                                <p className="fw-semibold empty fs-3 text-center">{verifyStatus}</p>
-                                <p className="fw-normal empty text-muted text-center lh-sm mb-5">
-                                    {verifyDescription}
-                                </p>
-                                {verifyStatus === "Success" && (
-                                    <button
-                                        className="btn rounded-4 shadow fw-semibold w-50 w-md-25 text-nowrap responsive-font"
-                                        type="button"
-                                        style={{ backgroundColor: '#80BC44', color: '#fff' }}
-
-                                        onClick={() => window.location.reload()}>
-                                        <i className="bi bi-lightbulb-fill me-2"></i> Return to Profile
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="row g-3">
-                        <div className="col-12 col-sm-6">
-                            <p className="fw-bold empty pt-3 fs-4 mb-2">Point Information</p>
-                            <div className="row g-3">
-                                <div className="col-4 d-flex align-items-stretch">
-                                    <div className="card border-0 rounded-4 shadow-cs w-100">
-                                        <div className="card-body text-center">
-                                            <p className="fw-bold fs-3 mb-2 text-success">{claimedPoints.toLocaleString()}</p>
-                                            <p className="fw-semibold">Claimed Points</p>
+                <div className="row g-3">
+                    <div className="col-12 col-sm-6">
+                        <p className="fw-bold empty pt-2 fs-4 mb-2">Profile Settings</p>
+                        <div className="row">
+                            <div className="col-12 mb-3">
+                                <div className="card border-0 rounded-4 shadow-cs">
+                                    <div className="card-body">
+                                        <p className="fw-medium mb-4">Change Username</p>
+                                        <p className="fw-regular f-9">Current Username :</p>
+                                        <p className="fw-medium f-9">{oldUsername}</p>
+                                        <p className="f-9 empty fw-medium">New Username :</p>
+                                        <div className="form-floating mb-1">
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm mb-2 border-0 border-bottom"
+                                                id="newUsername"
+                                                placeholder="Enter new username"
+                                                onChange={(e) => setUsername(e.target.value)}
+                                            />
+                                            <label className="f-9 text-muted" htmlFor="newUsername">New username</label>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div className="col-4 d-flex align-items-stretch">
-                                    <div className="card border-0 rounded-4 shadow-cs w-100">
-                                        <div className="card-body text-center">
-                                            <p className="fw-bold fs-3 mb-2 text-warning">{pendingPoints}</p>
-                                            <p className="fw-semibold">Pending Points</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="col-4 d-flex align-items-stretch">
-                                    <div className="card border-0 rounded-4 shadow-cs w-100">
-                                        <div className="card-body text-center">
-                                            <p className="fw-bold fs-3 mb-2 text-danger">{expiredPoints}</p>
-                                            <p className="fw-semibold">Expired Points</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                {pendingPoints > 0 && (
-                                    <div className="col-12">
-                                        <div className="card border-0 rounded-4 shadow-cs">
-                                            <div className="card-body">
-                                                <p className="fw-semibold mb-2">Notification</p>
-                                                {isPWA ? (
-                                                    <>
-                                                        <p className="empty">You have {pendingPoints} unclaimed points, claim now before they expire in {timeLeft}.</p>
-                                                        <button
-                                                            className="btn btn-outline-secondary rounded-4 fw-semibold w-50 w-md-25 text-nowrap responsive-font mt-2"
-                                                            type="button"
-                                                            style={{ color: 'rgb(128, 188, 68)', border: '2px solid rgb(128, 188, 68)', }}
-                                                            onClick={() => {
-                                                                setShowVerifyProcess(true);
-                                                                setShowVerifyModal(true);
-                                                            }}>
-                                                            <i className="bi bi-patch-check me-2"></i> Verify Location
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <p className="empty">You have {pendingPoints} unclaimed points, claim now before they expire in {timeLeft}. Use our PWA to throw your trash properly and keep earning more! </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="col-12 mb-2">
-                                    <div className="card border-0 rounded-4 shadow-cs">
-                                        <div className="card-body">
-                                            <p className="fw-semibold">Current Ranking</p>
-                                            <p className="fw-regular">
-                                                You are currently ranked <span className="fw-bold">{ranking}</span> out of <span className="fw-bold">{totalRankings}</span> users.
-                                            </p>
-                                            {/*
-                                            <p className="fw-regular">
-                                                You are currently ranked <span className="fw-bold">{ranking}</span> out of <span className="fw-bold">{totalRankings}</span> users.
-                                            </p>
-                                            */}
+                                        <p className="fw-semibold text-danger f-9">{UsernameError}</p>
+                                        <div className="d-flex justify-content-end">
+                                            <button className="btn rounded-3" type="button" style={{ backgroundColor: '#80BC44', color: '#fff' }} onClick={() => handleUsernameChange(username)}>
+                                                Change Username
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="col-12 col-sm-6">
-                            <p className="fw-bold empty pt-2 fs-4 mb-2">Profile Settings</p>
-                            <div className="row">
+
+
+                            <div className="col-12 mb-3">
+                                <div className="card border-0 rounded-4 shadow-cs">
+                                    <div className="card-body">
+                                        <p className="fw-medium mb-2">Logout from this account</p>
+                                        <div className="d-flex justify-content-end">
+                                            <button className="btn rounded-3 btn-danger" type="button" onClick={showLogoutConfirmation}>
+                                                Log out
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {isAdmin && (
                                 <div className="col-12 mb-3">
                                     <div className="card border-0 rounded-4 shadow-cs">
                                         <div className="card-body">
-                                            <p className="fw-medium mb-4">Change Username</p>
-                                            <p className="fw-regular f-9">Current Username :</p>
-                                            <p className="fw-medium f-9">{oldUsername}</p>
-                                            <p className="f-9 empty fw-medium">New Username :</p>
-                                            <div className="form-floating mb-1">
-                                                <input
-                                                    type="text"
-                                                    className="form-control form-control-sm mb-2 border-0 border-bottom"
-                                                    id="newUsername"
-                                                    placeholder="Enter new username"
-                                                    onChange={(e) => setUsername(e.target.value)}
-                                                />
-                                                <label className="f-9 text-muted" htmlFor="newUsername">New username</label>
-                                            </div>
-                                            <p className="fw-semibold text-danger f-9">{UsernameError}</p>
+                                            <p className="fw-medium mb-2">Admin Dashboard</p>
                                             <div className="d-flex justify-content-end">
-                                                <button className="btn rounded-3" type="button" style={{ backgroundColor: '#80BC44', color: '#fff' }} onClick={() => handleUsernameChange(username)}>
-                                                    Change Username
-                                                </button>
+                                                <Link className="btn rounded-3 btn-warning" to="/admin/dashboard">Go to Dashboard</Link>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-
-                                <div className="col-12 mb-3">
-                                    <div className="card border-0 rounded-4 shadow-cs">
-                                        <div className="card-body">
-                                            <p className="fw-medium mb-2">Logout from this account</p>
-                                            <div className="d-flex justify-content-end">
-                                                <button className="btn rounded-3 btn-danger" type="button" onClick={showLogoutConfirmation}>
-                                                    Log out
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {isAdmin && (
-                                    <div className="col-12 mb-3">
-                                        <div className="card border-0 rounded-4 shadow-cs">
-                                            <div className="card-body">
-                                                <p className="fw-medium mb-2">Admin Dashboard</p>
-                                                <div className="d-flex justify-content-end">
-                                                    <Link className="btn rounded-3 btn-warning" to="/admin/dashboard">Go to Dashboard</Link>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
-                )}
-                {showVerifyModal && (
-                    <div
-                        className={`modal fade show`}
-                        id="staticBackdrop"
-                        style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}
-                        tabIndex="-1"
-                        aria-labelledby="staticBackdropLabel"
-                        aria-modal="true"
-                        role="dialog" >
-                        <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content">
-                                <div className="modal-header">
-                                    <h1 className="modal-title fs-5" id="staticBackdropLabel">Verify Your Location</h1>
-                                    <button
-                                        type="button"
-                                        className="btn-close"
-                                        onClick={() => { setShowVerifyModal(false); setShowVerifyProcess(false); }}
-                                        aria-label="Close"
-                                    ></button>
-                                </div>
-                                <div className="modal-body">
-                                    To claim your recycling points, please verify that you are near an authorized recycling station.
-                                    You can do this by scanning a QR code or tapping your device on the NFC tag located at the station.
-                                    <br /><br />
-                                    You can also choose to claim your points later, but they will expire if not verified.
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                        type="button"
-                                        style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                                        onClick={handleNFCScan}>
-                                        <i className="bi bi-lightbulb-fill me-2"></i> Verify using NFC
-                                    </button>
-                                    <button
-                                        className="btn btn-lg rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                        type="button"
-                                        style={{ backgroundColor: '#80BC44', color: '#fff' }}
-                                        onClick={handleQRScan}>
-                                        <i className="bi bi-lightbulb-fill me-2"></i> Verify using QR Code
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary rounded-4 shadow fw-bold w-100 w-md-25 text-nowrap responsive-font"
-                                        onClick={() => {
-                                            setShowVerifyModal(false);
-                                            setShowVerifyProcess(false);
-                                        }}>
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
+                </div>
             </div>
+
+
             {showLogoutModal && (
                 <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog modal-dialog-centered">
