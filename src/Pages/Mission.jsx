@@ -1,19 +1,120 @@
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, getAuth } from 'firebase/auth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, getFirestore, collection, query, where, getDocs, Timestamp} from 'firebase/firestore';
 import { auth } from '../firebase';
 import './Mission.css';
 import Navbar from '../Components/Navbar/Navbar';
 
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const buildWeekDays = () => {
-    const todayIndex = new Date().getDay();
+const getMalaysianDateString = (date = new Date()) => {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kuala_Lumpur',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(date);
+};
 
-    return dayLabels.map((label, index) => ({
-        label,
-        status: index === todayIndex ? 'current' : 'empty',
-    }));
+const getStartOfWeek = (date = new Date()) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    start.setDate(start.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    return start;
+};
+
+const getEndOfWeek = (startOfWeek) => {
+    const end = new Date(startOfWeek);
+    end.setDate(end.getDate() + 7);
+    return end;
+};
+
+const buildWeekDays = () => {
+    const now = new Date();
+    const todayString = getMalaysianDateString(now);
+    const startOfWeek = getStartOfWeek(now);
+    
+    return dayLabels.map((label, index) => {
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(currentDate.getDate() + index);
+        
+        const dateString = getMalaysianDateString(currentDate);
+
+        let status = 'upcoming';
+
+        if (dateString === todayString) {
+            status = 'current';
+        } else if (dateString < todayString) {
+            status = 'missed';
+        }
+        
+        return { 
+            label, 
+            date: dateString,
+            status,
+        };
+    });
+};
+
+const getWeeklyChallengeStatus = async (uid) => {
+    const db = getFirestore();
+
+    const now = new Date();
+    const todayString = getMalaysianDateString(now);
+
+    const startOfWeek = getStartOfWeek(now);
+    const endOfWeek = getEndOfWeek(startOfWeek);
+
+    const pointsRef = collection(db, 'Points');
+
+    const q = query(
+        pointsRef,
+        where('uid', '==', uid),
+        where('isClaimed', '==', true),
+        where('claimedAt', '>=', Timestamp.fromDate(startOfWeek)),
+        where('claimedAt', '<', Timestamp.fromDate(endOfWeek))
+    );
+
+    const pointsSnap = await getDocs(q);
+
+    const disposedDateSet = new Set();
+
+    pointsSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+
+        if (!data.claimedAt) return;
+
+        const claimedDate = getMalaysianDateString(data.claimedAt.toDate());
+        disposedDateSet.add(claimedDate);
+    });
+
+    const weekDays = dayLabels.map((label, index) => {
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(startOfWeek.getDate() + index);
+
+        const dateString = getMalaysianDateString(currentDate);
+
+        let status = 'empty';
+
+        if (disposedDateSet.has(dateString)) {
+            status = 'done';
+        } else if (dateString === todayString) {
+            status = 'current';
+        } else if (dateString < todayString) {
+            status = 'missed';
+        } else {
+            status = 'empty';
+        }
+
+        return {
+            label,
+            date: dateString,
+            status,
+        };
+    });
+
+    return weekDays;
 };
 
 const ShareIcon = () => (
@@ -36,39 +137,50 @@ export default function Mission() {
     const [streakCount, setStreakCount] = useState(0);
     const [co2Saved, setCo2Saved] = useState(0);
     const [itemsRecycled, setItemsRecycled] = useState(0);
-    const [days] = useState(buildWeekDays);
+    const [days, setDays] = useState(buildWeekDays);
 
     const auth = getAuth();
     const user = auth.currentUser;
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (!currentUser) {
-                setStreakCount(0);
-                setCo2Saved(0);
-                setItemsRecycled(0);
-                console.warn('No user is currently signed in.');
-                return;
-            }
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (!currentUser) {
+            setStreakCount(0);
+            setCo2Saved(0);
+            setItemsRecycled(0);
+            setDays(buildWeekDays());
+            console.warn('No user is currently signed in.');
+            return;
+        }
 
-            try {
-                const db = getFirestore();
-                const userDocRef = doc(db, 'userStats', user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+        try {
+            const db = getFirestore();
 
-                if (!userDocSnap.exists()) return;
+            const userDocRef = doc(db, 'userStats', currentUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
+            if (userDocSnap.exists()) {
                 const data = userDocSnap.data();
+
                 setStreakCount(data.currentStreak || 0);
                 setCo2Saved(data.co2Saved || 0);
                 setItemsRecycled(data.totalItemsRecycled || 0);
-            } catch (error) {
-                console.error('Error fetching user stats:', error);
+            } else {
+                setStreakCount(0);
+                setCo2Saved(0);
+                setItemsRecycled(0);
             }
-        });
 
-        return () => unsubscribe();
-    }, []);
+            const weeklyDays = await getWeeklyChallengeStatus(currentUser.uid);
+            setDays(weeklyDays);
+
+        } catch (error) {
+            console.error('Error fetching mission data:', error);
+        }
+    });
+
+    return () => unsubscribe();
+}, []);
 
     return (
         <>
