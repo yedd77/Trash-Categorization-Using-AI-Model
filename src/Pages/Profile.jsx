@@ -40,6 +40,7 @@ const Profile = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
     const hasFetched = useRef(false);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     // Consolidated auth listener - sets user state and immediate properties
     useEffect(() => {
@@ -124,69 +125,285 @@ const Profile = () => {
         setShowLogoutModal(true);
     }
 
+    // Render information only if user is using desktop view
+    useEffect(() => {
+        if (!user || isMobile) return;
+
+        const fetchPointsData = async () => {
+            try {
+                const db = getFirestore();
+                const q = query(
+                    collection(db, "Points"),
+                    where("uid", "==", user.uid)
+                );
+
+                const snapshot = await getDocs(q);
+
+                let claimed = 0;
+                let pending = 0;
+                let expired = 0;
+                let earliest = null;
+
+                const now = new Date();
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const points = data.points || 0;
+                    const expiresAt = data.expiresAt?.toDate?.();
+                    if (data.isClaimed) {
+                        claimed += points;
+                        return;
+                    }
+                    if (data.isExpired || (expiresAt && expiresAt <= now)) {
+                        expired += points;
+                        return;
+                    }
+                    if (expiresAt && expiresAt > now) {
+                        pending += points;
+                        if (!earliest || expiresAt < earliest.expiresAt?.toDate?.()) {
+                            earliest = data;
+                        }
+                    }
+                });
+
+                setClaimedPoints(claimed);
+                setPendingPoints(pending);
+                setExpiredPoints(expired);
+
+                if (earliest) {
+                    setEarliestPoint(earliest);
+
+                    const expiresAt = earliest.expiresAt.toDate();
+                    const timeLeftMs = expiresAt - now;
+
+                    if (timeLeftMs > 0) {
+                        const minutes = Math.floor(timeLeftMs / (1000 * 60)) % 60;
+                        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+                        setTimeLeft(`${hours} hour(s) ${minutes} minute(s)`);
+                    } else {
+                        setTimeLeft("Already expired");
+                    }
+                } else {
+                    setEarliestPoint(null);
+                    setTimeLeft("No pending points");
+                }
+
+            } catch (error) {
+                console.error("Error fetching user point data:", error);
+            }
+        };
+
+        fetchPointsData();
+    }, [user, isMobile]);
+
+    // Fetch user ranking when user changes
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchRank = async () => {
+            try {
+                const db = getFirestore();
+                const userRef = doc(db, "Leaderboard", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) return;
+
+                const userPoints = userSnap.data().totalPoints || 0;
+
+                const q = query(
+                    collection(db, "Leaderboard"),
+                    where("totalPoints", ">", userPoints)
+                );
+
+                const countSnap = await getCountFromServer(q);
+                setRanking(countSnap.data().count + 1);
+            } catch (error) {
+                console.error("Error fetching ranking:", error);
+            }
+        };
+
+        fetchRank();
+    }, [user]);
+
+    // Get total user count for ranking display
+    useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
+        const fetchCount = async () => {
+            const db = getFirestore();
+            const coll = collection(db, "Leaderboard");
+            const snapshot = await getCountFromServer(coll);
+            setTotalRankings(snapshot.data().count);
+        };
+
+        fetchCount();
+    }, []);
     return (
         <>
             <Navbar />
             <div className="container-fluid" style={{ height: '100vh' }}>
-                <div className="row g-3">
-                    <div className="col-12 col-sm-6">
-                        <p className="fw-bold empty pt-2 fs-4 mb-2">Profile Settings</p>
-                        <div className="row">
-                            <div className="col-12 mb-3">
-                                <div className="card border-0 rounded-4 shadow-cs">
-                                    <div className="card-body">
-                                        <p className="fw-medium mb-4">Change Username</p>
-                                        <p className="fw-regular f-9">Current Username :</p>
-                                        <p className="fw-medium f-9">{oldUsername}</p>
-                                        <p className="f-9 empty fw-medium">New Username :</p>
-                                        <div className="form-floating mb-1">
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm mb-2 border-0 border-bottom"
-                                                id="newUsername"
-                                                placeholder="Enter new username"
-                                                onChange={(e) => setUsername(e.target.value)}
-                                            />
-                                            <label className="f-9 text-muted" htmlFor="newUsername">New username</label>
+                {!isMobile ?
+                    <div className="row g-3">
+                        <div className="col-12 col-sm-6">
+                            <p className="fw-bold empty pt-2 fs-4 mb-2">Point Information</p>
+                            <div className="row g-3">
+                                <div className="col-4 d-flex align-items-stretch">
+                                    <div className="card border-0 rounded-4 shadow-cs w-100">
+                                        <div className="card-body text-center">
+                                            <p className="fw-bold fs-3 mb-2 text-success">{claimedPoints.toLocaleString()}</p>
+                                            <p className="fw-semibold">Claimed Points</p>
                                         </div>
-                                        <p className="fw-semibold text-danger f-9">{UsernameError}</p>
-                                        <div className="d-flex justify-content-end">
-                                            <button className="btn rounded-3" type="button" style={{ backgroundColor: '#80BC44', color: '#fff' }} onClick={() => handleUsernameChange(username)}>
-                                                Change Username
-                                            </button>
+                                    </div>
+                                </div>
+
+                                <div className="col-4 d-flex align-items-stretch">
+                                    <div className="card border-0 rounded-4 shadow-cs w-100">
+                                        <div className="card-body text-center">
+                                            <p className="fw-bold fs-3 mb-2 text-warning">{pendingPoints.toLocaleString()}</p>
+                                            <p className="fw-semibold">Pending Points</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="col-4 d-flex align-items-stretch">
+                                    <div className="card border-0 rounded-4 shadow-cs w-100">
+                                        <div className="card-body text-center">
+                                            <p className="fw-bold fs-3 mb-2 text-danger">{expiredPoints}</p>
+                                            <p className="fw-semibold">Expired Points</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-12 mb-2">
+                                    <div className="card border-0 rounded-4 shadow-cs">
+                                        <div className="card-body">
+                                            <p className="fw-semibold">Current Ranking</p>
+                                            <p className="fw-regular">
+                                                You are currently ranked <span className="fw-bold">{ranking}</span> out of <span className="fw-bold">{totalRankings}</span> users.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-
-                            <div className="col-12 mb-3">
-                                <div className="card border-0 rounded-4 shadow-cs">
-                                    <div className="card-body">
-                                        <p className="fw-medium mb-2">Logout from this account</p>
-                                        <div className="d-flex justify-content-end">
-                                            <button className="btn rounded-3 btn-danger" type="button" onClick={showLogoutConfirmation}>
-                                                Log out
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {isAdmin && (
+                        <div className="col-12 col-sm-6">
+                            <p className="fw-bold empty pt-2 fs-4 mb-2">Profile Settings</p>
+                            <div className="row">
                                 <div className="col-12 mb-3">
                                     <div className="card border-0 rounded-4 shadow-cs">
                                         <div className="card-body">
-                                            <p className="fw-medium mb-2">Admin Dashboard</p>
+                                            <p className="fw-medium mb-4">Change Username</p>
+                                            <p className="fw-regular f-9">Current Username :</p>
+                                            <p className="fw-medium f-9">{oldUsername}</p>
+                                            <p className="f-9 empty fw-medium">New Username :</p>
+                                            <div className="form-floating mb-1">
+                                                <input
+                                                    type="text"
+                                                    className="form-control form-control-sm mb-2 border-0 border-bottom"
+                                                    id="newUsername"
+                                                    placeholder="Enter new username"
+                                                    onChange={(e) => setUsername(e.target.value)}
+                                                />
+                                                <label className="f-9 text-muted" htmlFor="newUsername">New username</label>
+                                            </div>
+                                            <p className="fw-semibold text-danger f-9">{UsernameError}</p>
                                             <div className="d-flex justify-content-end">
-                                                <Link className="btn rounded-3 btn-warning" to="/admin/dashboard">Go to Dashboard</Link>
+                                                <button className="btn rounded-3" type="button" style={{ backgroundColor: '#80BC44', color: '#fff' }} onClick={() => handleUsernameChange(username)}>
+                                                    Change Username
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            )}
+
+
+                                <div className="col-12 mb-3">
+                                    <div className="card border-0 rounded-4 shadow-cs">
+                                        <div className="card-body">
+                                            <p className="fw-medium mb-2">Logout from this account</p>
+                                            <div className="d-flex justify-content-end">
+                                                <button className="btn rounded-3 btn-danger" type="button" onClick={showLogoutConfirmation}>
+                                                    Log out
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {isAdmin && (
+                                    <div className="col-12 mb-3">
+                                        <div className="card border-0 rounded-4 shadow-cs">
+                                            <div className="card-body">
+                                                <p className="fw-medium mb-2">Admin Dashboard</p>
+                                                <div className="d-flex justify-content-end">
+                                                    <Link className="btn rounded-3 btn-warning" to="/admin/dashboard">Go to Dashboard</Link>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                    :
+                    <div className="row g-3">
+                        <div className="col-12 col-sm-6">
+                            <p className="fw-bold empty pt-2 fs-4 mb-2">Profile Settings</p>
+                            <div className="row">
+                                <div className="col-12 mb-3">
+                                    <div className="card border-0 rounded-4 shadow-cs">
+                                        <div className="card-body">
+                                            <p className="fw-medium mb-4">Change Username</p>
+                                            <p className="fw-regular f-9">Current Username :</p>
+                                            <p className="fw-medium f-9">{oldUsername}</p>
+                                            <p className="f-9 empty fw-medium">New Username :</p>
+                                            <div className="form-floating mb-1">
+                                                <input
+                                                    type="text"
+                                                    className="form-control form-control-sm mb-2 border-0 border-bottom"
+                                                    id="newUsername"
+                                                    placeholder="Enter new username"
+                                                    onChange={(e) => setUsername(e.target.value)}
+                                                />
+                                                <label className="f-9 text-muted" htmlFor="newUsername">New username</label>
+                                            </div>
+                                            <p className="fw-semibold text-danger f-9">{UsernameError}</p>
+                                            <div className="d-flex justify-content-end">
+                                                <button className="btn rounded-3" type="button" style={{ backgroundColor: '#80BC44', color: '#fff' }} onClick={() => handleUsernameChange(username)}>
+                                                    Change Username
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div className="col-12 mb-3">
+                                    <div className="card border-0 rounded-4 shadow-cs">
+                                        <div className="card-body">
+                                            <p className="fw-medium mb-2">Logout from this account</p>
+                                            <div className="d-flex justify-content-end">
+                                                <button className="btn rounded-3 btn-danger" type="button" onClick={showLogoutConfirmation}>
+                                                    Log out
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {isAdmin && (
+                                    <div className="col-12 mb-3">
+                                        <div className="card border-0 rounded-4 shadow-cs">
+                                            <div className="card-body">
+                                                <p className="fw-medium mb-2">Admin Dashboard</p>
+                                                <div className="d-flex justify-content-end">
+                                                    <Link className="btn rounded-3 btn-warning" to="/admin/dashboard">Go to Dashboard</Link>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>}
+
             </div>
 
 

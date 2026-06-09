@@ -24,6 +24,8 @@ const Navbar = () => {
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     // Check if app is running in standalone mode (PWA)
@@ -85,7 +87,23 @@ const Navbar = () => {
     return () => { document.removeEventListener('mousedown', handleClickOutside); };
   }, []);
 
+  // Function to handle logout
+  const handlelogout = () => {
+    auth.signOut().then(() => {
+      console.log("User signed out successfully.");
+      navigate("/")
+    }).catch((error) => {
+      console.error("Error signing out: ", error);
+    });
+  };
+
+  // Function to show the log out confirmation modal
+  const showLogoutConfirmation = () => {
+    setShowLogoutModal(true);
+  }
+
   return (
+    <>
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 vh-10">
       <Link to="/" className="navbar-brand" onClick={closeNavbar}><img src="/icons/icon-long.png" alt="Logo" height="40" /></Link>
 
@@ -119,53 +137,64 @@ const Navbar = () => {
 
           {!loading && (
             user ? (
-              <li className="nav-item user-dropdown-wrapper" ref={dropdownRef}>
-                <button
-                  className="user-dropdown-btn nav-link"
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                >
-                  <i className="bi bi-person-fill user-icon" />
-                  <span className="user-name">{user.displayName || "User"}</span>
-                  <i className={`bi bi-chevron-down user-chevron ${dropdownOpen ? "open" : ""}`} />
-                </button>
+              <>
+                {!isMobile ?
+                  <li className="nav-item">
+                    <Link to="/profile" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
+                      <i className="bi bi-person-fill mx-2" style={{ color: "#6b6968" }}></i>
+                      {user.displayName || 'User'}
+                    </Link>
+                  </li>
+                  :
+                  <li className="nav-item user-dropdown-wrapper" ref={dropdownRef}>
+                    <button
+                      className="user-dropdown-btn nav-link"
+                      onClick={() => setDropdownOpen((prev) => !prev)}
+                    >
+                      <i className="bi bi-person-fill user-icon" />
+                      <span className="user-name">{user.displayName || "User"}</span>
+                      <i className={`bi bi-chevron-down user-chevron ${dropdownOpen ? "open" : ""}`} />
+                    </button>
 
-                {dropdownOpen && (
-                  <div className="user-dropdown-menu">
+                    {dropdownOpen && (
+                      <div className="user-dropdown-menu">
 
-                    <div className="dropdown-header">
-                      <div className="dropdown-header-name">{user.displayName || "User"}</div>
-                      <div className="dropdown-header-email">{user.email}</div>
-                    </div>
+                        <div className="dropdown-header">
+                          <div className="dropdown-header-name">{user.displayName || "User"}</div>
+                          <div className="dropdown-header-email">{user.email}</div>
+                        </div>
 
-                    {[
-                      { to: "/profile", icon: "bi-person", label: "Profile settings" },
-                      { to: "/points", icon: "bi-star", label: "Point information" },
-                      { to: "/mission", icon: "bi-flag", label: "Mission" },
-                    ].map(({ to, icon, label }) => (
-                      <Link
-                        key={to}
-                        to={to}
-                        className="dropdown-item-link"
-                        onClick={() => { setDropdownOpen(false); closeNavbar(); }}
-                      >
-                        <i className={`bi ${icon} dropdown-icon`} />
-                        {label}
-                      </Link>
-                    ))}
+                        {[
+                          { to: "/profile", icon: "bi-person", label: "Profile settings" },
+                          { to: "/points", icon: "bi-star", label: "Point information" },
+                          { to: "/mission", icon: "bi-flag", label: "Mission" },
+                        ].map(({ to, icon, label }) => (
+                          <Link
+                            key={to}
+                            to={to}
+                            className="dropdown-item-link"
+                            onClick={() => { setDropdownOpen(false); closeNavbar(); }}
+                          >
+                            <i className={`bi ${icon} dropdown-icon`} />
+                            {label}
+                          </Link>
+                        ))}
 
-                    <div className="dropdown-signout-wrapper">
-                      <button
-                        className="dropdown-signout-btn"
-                        onClick={() => { /* your signOut() here */ setDropdownOpen(false); }}
-                      >
-                        <i className="bi bi-box-arrow-right dropdown-icon" />
-                        Sign out
-                      </button>
-                    </div>
+                        <div className="dropdown-signout-wrapper">
+                          <button
+                            className="dropdown-signout-btn"
+                            onClick={() => { handlelogout(); setDropdownOpen(false); }}
+                          >
+                            <i className="bi bi-box-arrow-right dropdown-icon" />
+                            Sign out
+                          </button>
+                        </div>
 
-                  </div>
-                )}
-              </li>
+                      </div>
+                    )}
+                  </li>
+                }
+              </>
             ) : (
               <Link to="/signin" className="nav-link text-decoration-none text-dark" onClick={closeNavbar}>
                 Sign Up
@@ -175,6 +204,28 @@ const Navbar = () => {
         </ul>
       </div>
     </nav>
+    {showLogoutModal && (
+                <div className="modal show" tabIndex="-1" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header bg-danger text-white">
+                                <h5 className="modal-title">Log out</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowLogoutModal(false)} aria-label="Close"></button>
+                            </div>
+                            <div className="modal-body">
+                                <p>Are you sure you want to log out?</p>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => window.location.reload()}>Cancel</button>
+                                <button type="button" className="btn btn-danger" onClick={handlelogout}>Yes, Log me out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+    </>
+    
+    
   );
 };
 

@@ -234,9 +234,6 @@ const Categorizer = () => {
     }
   }
 
-  //API route
-  const API_URL = import.meta.env.VITE_API_URL;
-
   // Function to send the image file to the backend for classification
   // This function creates a FormData object, appends the file to it, and sends it to the backend API
   async function sendImageToBackend(file) {
@@ -281,6 +278,7 @@ const Categorizer = () => {
       setOnlineStatus(true);
       try {
         const result = await sendImageToBackend(files[0]);
+        console.log('Classification backend result:', result);
         // Check if the result contains predictions
         if (result && result.predictions && result.predictions.length > 0) {
           setHavePrediction(true);
@@ -322,11 +320,18 @@ const Categorizer = () => {
       "plastic bag - wrapper"
     ];
 
+    if (!result || !Array.isArray(result.predictions) || result.predictions.length === 0) {
+      setHavePrediction(false);
+      setError('No Trash Detected');
+      return;
+    }
+
     const bestPrediction = result.predictions.reduce((a, b) =>
       a.confidence > b.confidence ? a : b
     );
 
-    let itemPredicted = bestPrediction.name.toLowerCase();
+    const predictedName = bestPrediction.name || bestPrediction.class_name || "";
+    let itemPredicted = predictedName.toLowerCase();
     let itemType = "";
 
     if (paperKeywords.some(keyword => itemPredicted.includes(keyword))) {
@@ -354,8 +359,8 @@ const Categorizer = () => {
     }
 
     setItemType(itemType); // Set the item type based on the best prediction
-    setPrediction(bestPrediction.class_name); // Set the best prediction
-    console.log(bestPrediction.class_name)
+    setPrediction(predictedName); // Set the best prediction
+    console.log(predictedName)
     setConfidence((bestPrediction.confidence * 100).toFixed(1)); // Set the confidence level
     setPendingPoint(itemType); // Call function to set pending point
   }
@@ -553,6 +558,10 @@ const Categorizer = () => {
       }
 
       const itemType = querySnapshot.docs[0].data().itemType;
+      const claimedPointsTotal = querySnapshot.docs.reduce(
+        (total, pointDoc) => total + (pointDoc.data().points || 0),
+        0
+      );
 
       // Update all pending points to claimed
       const updatePromises = querySnapshot.docs.map((doc) =>
@@ -567,7 +576,7 @@ const Categorizer = () => {
       await Promise.all(updatePromises);
 
       // Update user stats
-      await setUserStats(user.uid, itemTypes);
+      await setUserStats(user.uid, itemType, querySnapshot.size, claimedPointsTotal);
 
       setVerifyStatus("Success");
       setVerifyDescription(
@@ -583,7 +592,7 @@ const Categorizer = () => {
   };
 
   // Function to set the streak number based on the user's recycling activity
-  const setUserStats = async (uid, itemTypes) => {
+  const setUserStats = async (uid, itemType, itemCount, claimedPoints) => {
     if (!uid) return;
 
     const db = getFirestore();
@@ -601,6 +610,7 @@ const Categorizer = () => {
       "Plastic or Metal": 0.019,
       "Glass": 0.3,
     };
+    const co2Amount = co2PerItem[itemType] || 0;
 
     // If user stats document doesn't exist, create it with initial values
     if (!statsSnap.exists()) {
@@ -611,35 +621,43 @@ const Categorizer = () => {
         co2Saved: co2Amount,
         createdAt: serverTimestamp(),
       });
-
-      return;
-    }
-    const stats = statsSnap.data();
-
-    let newStreak = stats.currentStreak || 0;
-
-    if (stats.lastDisposeDate === today) {
-      // User already disposed today
-      // Streak should not increase again
-      newStreak = stats.currentStreak || 1;
-    } else if (stats.lastDisposeDate === yesterday) {
-      // User disposed yesterday, continue streak
-      newStreak += 1;
     } else {
-      // User missed at least one day, reset streak
-      newStreak = 1;
+      const stats = statsSnap.data();
+
+      let newStreak = stats.currentStreak || 0;
+
+      if (stats.lastDisposeDate === today) {
+        // User already disposed today
+        // Streak should not increase again
+        newStreak = stats.currentStreak || 1;
+      } else if (stats.lastDisposeDate === yesterday) {
+        // User disposed yesterday, continue streak
+        newStreak += 1;
+      } else {
+        // User missed at least one day, reset streak
+        newStreak = 1;
+      }
+
+      await updateDoc(statsRef, {
+        currentStreak: newStreak,
+        lastDisposeDate: today,
+        totalItemsRecycled: (stats.totalItemsRecycled || 0) + itemCount,
+        co2Saved: Number(((stats.co2Saved || 0) + co2Amount).toFixed(3)),
+        updatedAt: serverTimestamp(),
+      });
     }
 
-    await updateDoc(statsRef, {
-      currentStreak: newStreak,
-      lastDisposeDate: today,
+    const leaderboardRef = doc(db, "Leaderboard", uid);
+    const leaderboardSnap = await getDoc(leaderboardRef);
+    const leaderboardData = leaderboardSnap.exists() ? leaderboardSnap.data() : {};
 
-      totalItemsRecycled: (stats.totalItemsRecycled || 0) + itemCount,
-
-      co2Saved: Number(((stats.co2Saved || 0) + co2Amount).toFixed(3)),
-
+    await setDoc(leaderboardRef, {
+      uid,
+      username: auth.currentUser?.displayName || leaderboardData.username || "user",
+      totalPoints: (leaderboardData.totalPoints || 0) + claimedPoints,
+      trashThrown: (leaderboardData.trashThrown || 0) + itemCount,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });
 
   };
 
@@ -1077,8 +1095,10 @@ const Categorizer = () => {
 
                       {error && (
                         <>
-                          <p className="text-semibold fw-semibold fs-2 lh-sm my-1">No Trash Detected</p>
-                          <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
+                          <p className="text-semibold fw-semibold fs-2 lh-sm my-1">{error}</p>
+                          {error === "No Trash Detected" && (
+                            <p className='text-muted fw-semibold lh-sm'>There are no trash in the image</p>
+                          )}
                         </>
                       )}
                       <div className="mt-3 pt-3 d-flex flex-direction-column flex-md-row justify-content-center align-items-center gap-3 text-center">

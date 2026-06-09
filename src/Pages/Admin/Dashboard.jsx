@@ -1,11 +1,10 @@
-import React, { use } from 'react'
+import React, { use, useRef } from 'react'
 import AdminNavbar from './Components/AdminNavbar'
 import Sidebar from './Components/sidebar'
 import { data, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { db } from '../../firebase'
 import { collection, getDocs, doc, setDoc, getCountFromServer, query, where, updateDoc, deleteDoc } from 'firebase/firestore'
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PieController, plugins } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -30,6 +29,8 @@ const Dashboard = () => {
   const [userContributions, setUserContributions] = useState({});
   const [stackedData, setStackedData] = useState([]);
   const [timeSeriesCounts, setTimeSeriesCounts] = useState({});
+  const [totalUsers, setTotalUsers] = useState(0);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
     // Total waste submissions
@@ -48,6 +49,27 @@ const Dashboard = () => {
     fetchActiveStationCount();
   }, []);
 
+  // Get total user count for total user 
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const fetchCount = async () => {
+      try {
+        const coll = collection(db, "Leaderboard");
+        const snapshot = await getCountFromServer(coll);
+        setTotalUsers(snapshot.data().count);
+      } catch (error) {
+        setTotalUsers(0);
+        setError("Error fetching total user count.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCount();
+  }, []);
+
   // Function to fetch stations data
   useEffect(() => {
     // Fetching the count of stations from Firestore
@@ -60,22 +82,6 @@ const Dashboard = () => {
     countStation();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          "https://us-central1-bin-buddy-v1.cloudfunctions.net/getUserCount"
-        ); 12
-
-        const data = await res.json();
-        setUserCount(data.userCount);
-      } catch (err) {
-        setError("Error fetching user count.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   // Function to handle the toggle of the sidebar
   // Function to handle sidebar toggle
@@ -331,17 +337,17 @@ const Dashboard = () => {
   const hourlyChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { 
+    plugins: {
       legend: { display: true },
       datalabels: {
         display: true,
         color: '#000000',
-        font: {        
+        font: {
           size: 12,
         },
         formatter: (value) => value,
       },
-     },
+    },
     scales: { y: { beginAtZero: true } },
   };
 
@@ -358,16 +364,16 @@ const Dashboard = () => {
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { 
-      legend: { display: false }, 
+    plugins: {
+      legend: { display: false },
       datalabels: {
-          display: true,
-          color: '#000000',
-          font: {        
-            size: 12,           
-          },
-          formatter: (value) => value,
+        display: true,
+        color: '#000000',
+        font: {
+          size: 12,
         },
+        formatter: (value) => value,
+      },
     },
     scales: { x: { beginAtZero: true } },
   };
@@ -380,16 +386,16 @@ const Dashboard = () => {
   const stackedBarChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { 
+    plugins: {
       legend: { display: true },
       datalabels: {
-            display: true,
-            color: '#000000',
-            font: {        
-              size: 12,           
-            },
-            formatter: (value) => value,
-          },
+        display: true,
+        color: '#000000',
+        font: {
+          size: 12,
+        },
+        formatter: (value) => value,
+      },
     },
     scales: {
       x: { stacked: true },
@@ -412,19 +418,19 @@ const Dashboard = () => {
   const dailyChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { 
+    plugins: {
       legend: { display: true },
       datalabels: {
-          display: true,
-          color: '#000000',
-          font: {        
-            size: 12,
-          },
-          formatter: (value) => value,
+        display: true,
+        color: '#000000',
+        font: {
+          size: 12,
         },
+        formatter: (value) => value,
+      },
     },
     scales: { y: { beginAtZero: true } },
-    
+
   };
 
   return (
@@ -466,8 +472,7 @@ const Dashboard = () => {
                   <div className="small-box text-bg-info">
                     <div className="inner" style={{ color: '#fff' }}>
                       {loading && <h3>Loading...</h3>}
-                      {error && <h3 className="fw-semibold">{error}</h3>}
-                      {!loading && !error && <h3>{userCount}</h3>}
+                      {<h3>{totalUsers}</h3>}
                       <p>Total Users</p>
                     </div>
                     <Link to="/admin/dashboard/users" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
@@ -512,12 +517,12 @@ const Dashboard = () => {
                       <div className="chart" style={{ height: '250px' }}>
                         {trashLoading ? (
                           <p>Loading...</p>
-                        ) : (                        
-                            <Pie
-                              key={JSON.stringify(trashTypeLabels) + JSON.stringify(trashTypeData)}
-                              data={trashTypeChartData}
-                              options={trashTypeChartOptions}
-                            />                          
+                        ) : (
+                          <Pie
+                            key={JSON.stringify(trashTypeLabels) + JSON.stringify(trashTypeData)}
+                            data={trashTypeChartData}
+                            options={trashTypeChartOptions}
+                          />
                         )}
                       </div>
                     </div>
@@ -530,8 +535,8 @@ const Dashboard = () => {
                       <h3 className="card-title">Trash Collected Per Station</h3>
                     </div>
                     <div className="card-body">
-                      <div className="chart" style={{height: '250px'}}>
-                          <Bar data={stationBarChartData} options={stationBarChartOptions} plugins={[ChartDataLabels]} />
+                      <div className="chart" style={{ height: '250px' }}>
+                        <Bar data={stationBarChartData} options={stationBarChartOptions} plugins={[ChartDataLabels]} />
                       </div>
                     </div>
                   </div>
@@ -543,8 +548,8 @@ const Dashboard = () => {
                       <h3 className="card-title">Trash Disposal Frequency (Hourly)</h3>
                     </div>
                     <div className="card-body">
-                      <div className="chart" style={{height: '250px'}}>
-                          <Bar data={hourlyChartData} options={hourlyChartOptions} />
+                      <div className="chart" style={{ height: '250px' }}>
+                        <Bar data={hourlyChartData} options={hourlyChartOptions} />
                       </div>
                     </div>
                   </div>
@@ -556,8 +561,8 @@ const Dashboard = () => {
                       <h3 className="card-title">Trash Disposal Frequency (Daily)</h3>
                     </div>
                     <div className="card-body">
-                      <div className="chart" style={{ height: '250px' }}>                        
-                          <Bar data={dailyChartData} options={dailyChartOptions} />
+                      <div className="chart" style={{ height: '250px' }}>
+                        <Bar data={dailyChartData} options={dailyChartOptions} />
                       </div>
                     </div>
                   </div>
@@ -569,8 +574,8 @@ const Dashboard = () => {
                       <h3 className="card-title">User Contribution</h3>
                     </div>
                     <div className="card-body">
-                      <div className="chart" style={{ height: '250px' }}>            
-                          <Bar data={userBarChartData} options={userBarChartOptions} />                        
+                      <div className="chart" style={{ height: '250px' }}>
+                        <Bar data={userBarChartData} options={userBarChartOptions} />
                       </div>
                     </div>
                   </div>
@@ -582,12 +587,12 @@ const Dashboard = () => {
                       <h3 className="card-title">Trash Type Per Station</h3>
                     </div>
                     <div className="card-body">
-                      <div className="chart" style={{ height: '250px' }}>                     
-                          <Bar data={stackedBarChartData} options={stackedBarChartOptions} />
+                      <div className="chart" style={{ height: '250px' }}>
+                        <Bar data={stackedBarChartData} options={stackedBarChartOptions} />
                       </div>
                     </div>
                   </div>
-                </div>                
+                </div>
               </div>
             </div>
           </div>
