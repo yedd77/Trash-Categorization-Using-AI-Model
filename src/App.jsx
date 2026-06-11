@@ -16,12 +16,12 @@ import { getDoc } from 'firebase/firestore'
 
 import Station from './Pages/Admin/Station'
 import AddStation from './Pages/Admin/AddStation'
-import Users from './Pages/Admin/Users'
 import Leaderboard from './Pages/Admin/Leaderboard'
 import Point from './Pages/Admin/Point'
 import InProgress from './Pages/InProgress'
 import Points from './Pages/Points'
 import Mission from './Pages/Mission'
+import Firebase from './Pages/firebase'
 
 function App() {
   return (
@@ -37,6 +37,7 @@ function App() {
         <Route path="/in-progress" element={<InProgress />} />
         <Route path="/points" element={<Points />} />
         <Route path="/mission" element={<Mission />} />
+        <Route path="/firebase" element={<Firebase />} />
 
         {/* Admin Route */}
         <Route path="/admin/dashboard" 
@@ -57,13 +58,6 @@ function App() {
         element={
           <AdminRoute>
             <AddStation />
-          </AdminRoute>
-        } 
-        />
-        <Route path="/admin/dashboard/users" 
-        element={
-          <AdminRoute>
-            <Users />
           </AdminRoute>
         } 
         />

@@ -52,6 +52,14 @@
     color: #f57c00;
   }
 
+  .day-dot.current {
+    animation: blinker 1.5s linear infinite;
+  }
+
+  @keyframes blinker {
+    50% { opacity: 0; }
+  }
+
   .day-dot.done    { background: #80BC44; }
   .day-dot.missed  { background: #e74c3c; }
   .day-dot.current { background: #f0ad4e; }

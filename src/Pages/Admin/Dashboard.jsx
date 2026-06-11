@@ -284,7 +284,7 @@ const Dashboard = () => {
       datalabels: {
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value, context) => {
           const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -313,7 +313,7 @@ const Dashboard = () => {
         display: true,
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value) => value,
       },
@@ -343,7 +343,7 @@ const Dashboard = () => {
         display: true,
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value) => value,
       },
@@ -370,7 +370,7 @@ const Dashboard = () => {
         display: true,
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value) => value,
       },
@@ -392,7 +392,7 @@ const Dashboard = () => {
         display: true,
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value) => value,
       },
@@ -424,7 +424,7 @@ const Dashboard = () => {
         display: true,
         color: '#000000',
         font: {
-          size: 12,
+          size: 0,
         },
         formatter: (value) => value,
       },
@@ -462,10 +462,6 @@ const Dashboard = () => {
                       <h3 className='fw-semibold'>{stationCount}</h3>
                       <p>Total Stations</p>
                     </div>
-                    <Link to="/admin/dashboard/station" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                      <i className="bi bi-link-45deg"></i>
-                      More info
-                    </Link>
                   </div>
                 </div>
                 <div className="col-lg-3 col-6">
@@ -475,10 +471,6 @@ const Dashboard = () => {
                       {<h3>{totalUsers}</h3>}
                       <p>Total Users</p>
                     </div>
-                    <Link to="/admin/dashboard/users" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                      <i className="bi bi-link-45deg"></i>
-                      More info
-                    </Link>
                   </div>
                 </div>
                 <div className="col-lg-3 col-6">
@@ -487,10 +479,6 @@ const Dashboard = () => {
                       <h3 className='fw-semibold'>{pointsCount.toLocaleString()}</h3>
                       <p>Total Waste Submissions</p>
                     </div>
-                    <Link to="/admin/dashboard/point" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                      <i className="bi bi-link-45deg"></i>
-                      More info
-                    </Link>
                   </div>
                 </div>
                 <div className="col-lg-3 col-6">
@@ -499,10 +487,6 @@ const Dashboard = () => {
                       <h3 className='fw-semibold'>{activeStationCount}</h3>
                       <p>Active Stations</p>
                     </div>
-                    <Link to="/admin/dashboard/station" className="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                      <i className="bi bi-link-45deg"></i>
-                      More info
-                    </Link>
                   </div>
                 </div>
               </div>

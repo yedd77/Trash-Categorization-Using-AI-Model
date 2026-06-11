@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, getAuth } from 'firebase/auth';
-import { doc, getDoc, getFirestore, collection, query, where, getDocs, Timestamp} from 'firebase/firestore';
+import { doc, getDoc, getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { auth } from '../firebase';
 import './Mission.css';
 import Navbar from '../Components/Navbar/Navbar';
@@ -34,11 +34,11 @@ const buildWeekDays = () => {
     const now = new Date();
     const todayString = getMalaysianDateString(now);
     const startOfWeek = getStartOfWeek(now);
-    
+
     return dayLabels.map((label, index) => {
         const currentDate = new Date(startOfWeek);
         currentDate.setDate(currentDate.getDate() + index);
-        
+
         const dateString = getMalaysianDateString(currentDate);
 
         let status = 'upcoming';
@@ -48,9 +48,9 @@ const buildWeekDays = () => {
         } else if (dateString < todayString) {
             status = 'missed';
         }
-        
-        return { 
-            label, 
+
+        return {
+            label,
             date: dateString,
             status,
         };
@@ -141,47 +141,67 @@ export default function Mission() {
 
     const auth = getAuth();
     const user = auth.currentUser;
+    const [streakBool, setStreakBool] = useState(false);
 
     useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        if (!currentUser) {
-            setStreakCount(0);
-            setCo2Saved(0);
-            setItemsRecycled(0);
-            setDays(buildWeekDays());
-            console.warn('No user is currently signed in.');
-            return;
-        }
-
-        try {
-            const db = getFirestore();
-
-            const userDocRef = doc(db, 'userStats', currentUser.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (userDocSnap.exists()) {
-                const data = userDocSnap.data();
-
-                setStreakCount(data.currentStreak || 0);
-                setCo2Saved(data.co2Saved || 0);
-                setItemsRecycled(data.totalItemsRecycled || 0);
-            } else {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (!currentUser) {
                 setStreakCount(0);
                 setCo2Saved(0);
                 setItemsRecycled(0);
+                setDays(buildWeekDays());
+                console.warn('No user is currently signed in.');
+                return;
             }
 
-            const weeklyDays = await getWeeklyChallengeStatus(currentUser.uid);
-            setDays(weeklyDays);
+            try {
+                const db = getFirestore();
 
+                const userDocRef = doc(db, 'userStats', currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const data = userDocSnap.data();
+
+                    //streak calculator
+                    if (data.lastDisposeDate === getMalaysianDateString()) {
+                        setStreakBool(true);
+                    } else {
+                        setStreakBool(false);
+                    }
+                    setStreakCount(data.currentStreak || 0);
+                    setCo2Saved(data.co2Saved || 0);
+                    setItemsRecycled(data.totalItemsRecycled || 0);
+                } else {
+                    setStreakCount(0);
+                    setCo2Saved(0);
+                    setItemsRecycled(0);
+                }
+
+                const weeklyDays = await getWeeklyChallengeStatus(currentUser.uid);
+                setDays(weeklyDays);
+
+            } catch (error) {
+                console.error('Error fetching mission data:', error);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+    
+    const handleShare = async (title, description) => {
+        try {
+            await navigator.share({
+                title : title,
+                text : description,
+                url : 'https://binbuddy.my'
+            });
+            return;
         } catch (error) {
-            console.error('Error fetching mission data:', error);
+            console.error("Error sharing:", error);
         }
-    });
-
-    return () => unsubscribe();
-}, []);
-
+    };
+    
     return (
         <>
             <Navbar />
@@ -190,14 +210,21 @@ export default function Mission() {
                 <div className="stat-card bg-white d-flex align-items-center justify-content-between px-3 py-3 mb-3">
                     <div className="d-flex align-items-center gap-3 flex-grow-1">
                         <div className="stat-icon-wrap text-center">
-                            <img src="/fire-lit.png" alt="" className="mission-icon" />
+                            {streakBool === false ?
+                                <img src="/fire-dim.png" alt="" className="mission-icon" />
+                                :
+                                <img src="/fire-lit.png" alt="" className="mission-icon" />
+                            }
+
                         </div>
                         <div className="d-flex align-items-center flex-grow-1">
                             <span className="stat-value streak">{streakCount.toLocaleString()}</span>
                             <span className="text-secondary fw-medium" style={{ fontSize: 14, fontWeight: 900 }}>Days Streak</span>
                         </div>
                     </div>
-                    <button className="btn btn-link share-btn p-0"><ShareIcon /></button>
+                    <button className="btn btn-link share-btn p-0" onClick={() => handleShare("My Recycling Streak", `I've maintained a ${streakCount}-day recycling streak! Join me in making a difference.`)}>
+                        <ShareIcon />
+                    </button>
                 </div>
                 <div className="stat-card bg-white d-flex align-items-center justify-content-between px-3 py-3 mb-3">
                     <div className="d-flex align-items-center gap-3 flex-grow-1">
@@ -207,7 +234,9 @@ export default function Mission() {
                             <span className="text-secondary fw-medium" style={{ fontSize: 14 }}>CO<sup>2</sup> Saved</span>
                         </div>
                     </div>
-                    <button className="btn btn-link share-btn p-0"><ShareIcon /></button>
+                    <button className="btn btn-link share-btn p-0 " onClick={() => handleShare("My CO2 Savings", `I've saved ${co2Saved.toFixed(3)}kg of CO2 through recycling! Join me in making a difference.`)}>
+                        <ShareIcon />
+                    </button>
                 </div>
                 <div className="stat-card bg-white d-flex align-items-center justify-content-between px-3 py-3 mb-3">
                     <div className="d-flex align-items-center gap-3 flex-grow-1">
@@ -217,7 +246,9 @@ export default function Mission() {
                             <span className="text-secondary fw-medium" style={{ fontSize: 14 }}>Item Recycled</span>
                         </div>
                     </div>
-                    <button className="btn btn-link share-btn p-0"><ShareIcon /></button>
+                    <button className="btn btn-link share-btn p-0" onClick={() => handleShare("My Recycling Achievements", `I've recycled ${itemsRecycled.toLocaleString()} items! Join me in making a difference.`)}>
+                        <ShareIcon />
+                    </button>
                 </div>
                 <p className="fw-bold fs-6 mb-3 mt-2">Daily Challenge</p>
                 <div className="challenge-card bg-white px-3 py-3">

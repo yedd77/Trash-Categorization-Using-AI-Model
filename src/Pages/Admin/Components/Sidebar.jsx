@@ -42,12 +42,6 @@ const Sidebar = () => (
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/admin/dashboard/users" className="nav-link">
-                  <i className="bi bi-person-fill"></i>
-                  <p>Users</p>
-                </Link>
-              </li>
-              <li className="nav-item">
                 <Link to="/admin/dashboard/leaderboard" className="nav-link">
                   <i className="bi bi-trophy-fill"></i>
                   <p>Leaderboard</p>
